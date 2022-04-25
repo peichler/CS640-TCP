@@ -7,11 +7,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class TCPsender extends TCPbase{
-  InetAddress ip;
-  int remotePort;
-
-  int seqNum, ackNum;
-
+  
   public TCPsender(int port, InetAddress ip, int remotePort, String fileName, int mtu, int sws){
     super(port, fileName, mtu, sws);
 
@@ -39,8 +35,7 @@ public class TCPsender extends TCPbase{
         byte[] data = new byte [Math.min(getMaxDataSize(), stream.available())];
         stream.read(data, 0, data.length);
 
-        byte[] tcpData = makeTCPPacket(data, flags);
-        sendTCP(tcpData);
+        sendTCP(data, flags);
 
         //Increment sequence
         seqNum += data.length;
@@ -50,38 +45,13 @@ public class TCPsender extends TCPbase{
     }catch(IOException e){
       System.out.println(e);
     }
+
+    //TODO: remove this in future
+    super.stopThread();
   }
 
-  short getChecksum(byte[] data){
-    return (short)0;
-  }
-
-  byte[] makeTCPPacket(byte[] data, Boolean[] flags){
-    ByteBuffer buff = ByteBuffer.allocate(data.length + headerSize);
-
-    buff.putInt(seqNum);
-    buff.putInt(ackNum);
-    buff.putLong(System.nanoTime());
-    
-    int sizeWithFlags = data.length;
-    for (int i=0; i<3; i++) {
-      sizeWithFlags = sizeWithFlags << 1;
-      sizeWithFlags += flags[i] ? 1 : 0;
-    }
-
-    buff.putInt(sizeWithFlags);
-    buff.putShort((short)0);
-    buff.putShort(getChecksum(data));
-    System.out.println("Header position: " + buff.position());
-
-    buff.put(data);
-
-    return buff.array();
-  }
-
-  void sendTCP(byte[] data) throws IOException {
-    DatagramPacket packet = new DatagramPacket(data, data.length, ip, remotePort);
-    this.socket.send(packet);
+  public void handlePacket(DatagramPacket packet){
+    System.out.println("Handling packet!");
   }
 
   int getMaxDataSize(){

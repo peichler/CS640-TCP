@@ -5,12 +5,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class TCPreceiver extends TCPbase{
+  FileOutputStream stream;
+
   public TCPreceiver(int port, int mtu, int sws, String fileName){
     super(port, fileName, mtu, sws);
-  }
-
-  public void receiveFile(){
-    FileOutputStream stream = null;
 
     try{
       stream = new FileOutputStream(fileName);
@@ -18,30 +16,24 @@ public class TCPreceiver extends TCPbase{
       System.out.println("File could not be created");
       return;
     }
+  }
 
-    //TODO: check when file has been completly sent
-    while(true){
-      byte[] data = new byte[mtu];
-      DatagramPacket packet = new DatagramPacket(data, data.length);
-      try{
-        this.socket.receive(packet);  
+  public void handlePacket(DatagramPacket packet){
+    byte[] data = packet.getData();
 
-        //TODO: read through headers
 
-        // Use FileChannel to write at position for out of order data
-        // https://stackoverflow.com/questions/9558979/java-outputstream-skip-offset
-        stream.write(data, headerSize, packet.getLength() - headerSize);
-      }catch(IOException e){
-        System.out.println(e);
-        continue;
-      }
-
-      //TODO: make acknowledgment
-
-      //TODO: check if end of file
-      break;
+    try{
+      // Use FileChannel to write at position for out of order data
+      // https://stackoverflow.com/questions/9558979/java-outputstream-skip-offset
+      stream.write(data, headerSize, packet.getLength() - headerSize);
+    }catch(IOException e){
+      System.out.println(e);
     }
-    
+  }
+
+  public void disconnect(){
+    super.disconnect(); 
+
     try{
       stream.close();  
     }catch(IOException e){
