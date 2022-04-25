@@ -3,7 +3,10 @@ import java.net.InetAddress;
 public class TCPend {
   public static void main(String[] args){
     // java TCPend -p <port> -s <remote IP> -a <remote port> –f <file name> -m <mtu> -c <sws>
+    // java TCPend -p 6000 -s x.x.x.x -a 5000 -f original.txt -m 200 -c 4
+
     // java TCPend -p <port> -m <mtu> -c <sws> -f <file name>
+    // java TCPend -p 5000 -m 200 -c 4 -f test.txt
 
     if(args.length == 12 && args[2].equals("-s")) {
       createSender(args);
