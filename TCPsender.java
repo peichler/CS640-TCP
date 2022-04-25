@@ -51,6 +51,6 @@ public class TCPsender extends TCPbase{
   int getMaxDataSize(){
     // TODO: calculate real max size between both sender & reciever
     // TODO: cacluate real header size
-    return this.mtu - headerSize;
+    return this.mtu - headerSize - 28;
   }
 }

@@ -28,6 +28,8 @@ public class TCPreceiver extends TCPbase{
 
         //TODO: read through headers
 
+        // Use FileChannel to write at position for out of order data
+        // https://stackoverflow.com/questions/9558979/java-outputstream-skip-offset
         stream.write(data, headerSize, packet.getLength() - headerSize);
       }catch(IOException e){
         System.out.println(e);
