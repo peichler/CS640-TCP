@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class TCPsender extends TCPbase{
-  
+
   public TCPsender(int port, InetAddress ip, int remotePort, String fileName, int mtu, int sws){
     super(port, fileName, mtu, sws);
 
@@ -16,9 +16,6 @@ public class TCPsender extends TCPbase{
   }
 
   public void sendFile(){
-    //TODO: catch connection errors?
-    this.socket.connect(ip, remotePort);
-
     FileInputStream stream = null;
     
     try{
@@ -34,11 +31,8 @@ public class TCPsender extends TCPbase{
 
         byte[] data = new byte [Math.min(getMaxDataSize(), stream.available())];
         stream.read(data, 0, data.length);
-
+        System.out.println("Sending data with size: "+ data.length);
         sendTCP(data, flags);
-
-        //Increment sequence
-        seqNum += data.length;
       }
 
       stream.close();
@@ -50,13 +44,13 @@ public class TCPsender extends TCPbase{
     super.stopThread();
   }
 
-  public void handlePacket(DatagramPacket packet){
+  public void handlePacket(TCPpacket packet){
     System.out.println("Handling packet!");
   }
 
   int getMaxDataSize(){
     // TODO: calculate real max size between both sender & reciever
     // TODO: cacluate real header size
-    return this.mtu - headerSize - 28;
+    return this.mtu - TCPpacket.headerSize - 28;
   }
 }

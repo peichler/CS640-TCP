@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 
 public abstract class TCPbase extends Thread{
   private boolean doStop = false;
-  final int headerSize = 24;
+  private boolean canSendData = false;
 
   DatagramSocket socket;
   InetAddress ip;
@@ -15,7 +15,9 @@ public abstract class TCPbase extends Thread{
 
   String fileName;
   int mtu, sws;
-  int seqNum, ackNum;
+  int seqNum;
+  int ackNum;
+  int lastRecAck;
 
   public TCPbase(int port, String fileName, int mtu, int sws){
     this.fileName = fileName;
@@ -30,6 +32,12 @@ public abstract class TCPbase extends Thread{
   }
 
   public void run(){
+    // We have an ip ... we are the sender so connect and send initial packet
+    if(ip != null){
+      this.socket.connect(ip, remotePort);
+      sendTCP(ByteBuffer.allocate(4).putInt(this.socket.getPort()).array(), new Boolean[]{true,false,false});
+    }
+
     while(running()){
       byte[] data = new byte[mtu];
       DatagramPacket packet = new DatagramPacket(data, data.length);
@@ -43,45 +51,96 @@ public abstract class TCPbase extends Thread{
 
   // Receiving data
   private void receivedPacket(DatagramPacket packet){
-    // Handle TCP here
-    handlePacket(packet);
-    System.out.println("Handled packet ... stopping thread");
-    stopThread();
+    TCPpacket tcpPacket = new TCPpacket(packet.getData());
+
+    // Incorrect checksum ... drop packet
+    if(tcpPacket.isChecksumValid() == false){
+      System.out.println("Incorrect checksum ... dropping packet");
+      return;
+    }
+
+
+    if(tcpPacket.isAck()){
+      if(tcpPacket.ackNum > lastRecAck)
+        lastRecAck = tcpPacket.ackNum;
+    }
+
+    if(tcpPacket.isSyn()){
+      ackNum = tcpPacket.seqNum + 1;
+
+      // No ACK flag ... we are client receiving syn for first time
+      if(tcpPacket.isAck() == false){
+        if(tcpPacket.data.length < 4){
+          System.out.println("Invalid port number");
+          return;
+        }
+
+        remotePort = tcpPacket.data[0];
+
+        if(remotePort < 1 || remotePort > 65535){
+          System.out.println("Invalid port number");
+          return;
+        }
+
+        sendTCP(ByteBuffer.allocate(4).putInt(this.socket.getPort()).array(), new Boolean[]{true,true,false});
+      }else{
+        sendACK();
+        canSendData = true;
+      }
+    }
+    // Packet is not syn or ack ... handle packet by application
+    else if(tcpPacket.isAck() == false){
+      handlePacket(tcpPacket);
+
+      // Send a packet back to acknoledge this packet
+      ackNum = tcpPacket.seqNum + 1;
+      sendACK();
+    }
+
+    // Sequence number has already been initialized
+    // else{
+    //   int prevSeq = tcpPacket.seqNum - tcpPacket.dataSize;
+    //   if(prevSeq < ackNum){
+    //     System.out.println("Duplicate packet ... dropping packet");
+    //     return;
+    //   }else if(prevSeq > ackNum){
+    //     //TODO: Put packet in queue
+    //     return;
+    //   }
+    // }
+
+    
+    // TODO: remove in future
+    // if(tcpPacket.seqNum){
+    //   System.out.println("Stopping thread");
+    //   stopThread();
+    // }
   }
 
-  abstract void handlePacket(DatagramPacket packet);
+  abstract void handlePacket(TCPpacket packet);
 
 
   // Sending data
-  void sendTCP(byte[] data, Boolean[] flags) throws IOException {
-    ByteBuffer buff = ByteBuffer.allocate(data.length + headerSize);
+  void sendACK(){
+    seqNum += 1;
+    sendTCP(new byte[0], new Boolean[]{false,true,false});
+  }
 
-    buff.putInt(seqNum);
-    buff.putInt(ackNum);
-    buff.putLong(System.nanoTime());
-    
-    int sizeWithFlags = data.length;
-    for (int i=0; i<3; i++) {
-      sizeWithFlags = sizeWithFlags << 1;
-      sizeWithFlags += flags[i] ? 1 : 0;
+  void sendTCP(byte[] data, Boolean[] flags) {
+    try{
+      long time = System.nanoTime();
+      TCPpacket tcpPacket = new TCPpacket(seqNum, ackNum, time, flags, data);
+      byte[] tcpData = tcpPacket.packetToBytes();
+
+      DatagramPacket packet = new DatagramPacket(tcpData, tcpData.length, ip, remotePort);
+      this.socket.send(packet);
+
+      //Increment sequence
+      seqNum += data.length;
+    }catch(IOException e){
+      System.out.println("Failure to send packet");
     }
-
-    buff.putInt(sizeWithFlags);
-    buff.putShort((short)0);
-    buff.putShort(getChecksum(data));
-
-    buff.put(data);
-
-    byte[] tcpData = buff.array();
-
-    DatagramPacket packet = new DatagramPacket(tcpData, tcpData.length, ip, remotePort);
-    this.socket.send(packet);
   }
-
-  short getChecksum(byte[] data){
-    return (short)0;
-  }
-
 
   public synchronized void stopThread(){
     this.doStop = true;

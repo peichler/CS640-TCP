@@ -18,14 +18,14 @@ public class TCPreceiver extends TCPbase{
     }
   }
 
-  public void handlePacket(DatagramPacket packet){
-    byte[] data = packet.getData();
+  public void handlePacket(TCPpacket packet){
+    byte[] data = packet.data;
 
 
     try{
       // Use FileChannel to write at position for out of order data
       // https://stackoverflow.com/questions/9558979/java-outputstream-skip-offset
-      stream.write(data, headerSize, packet.getLength() - headerSize);
+      stream.write(data, 0, data.length);
     }catch(IOException e){
       System.out.println(e);
     }

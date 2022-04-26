@@ -73,8 +73,7 @@ public class TCPend {
     // Create tcp sender here
     TCPsender sender = new TCPsender(port, ip, remotePort, fileName, mtu, sws);
     sender.start();
-    sender.sendFile();
-    // sender.disconnect();
+    // sender.sendFile();
   }
 
   static void createReceiver(String[] args){
@@ -116,9 +115,7 @@ public class TCPend {
     String fileName = args[7];
     
     TCPreceiver receiver = new TCPreceiver(port, mtu, sws, fileName);
-    // receiver.receiveFile();
     receiver.start();
-    // receiver.disconnect();
   }
 
   public static int stringToPort(String p) {
