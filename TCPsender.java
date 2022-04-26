@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+// Sends file to receiver using TCP from base class
 public class TCPsender extends TCPbase{
 
   public TCPsender(int port, InetAddress ip, int remotePort, String fileName, int mtu, int sws){
@@ -16,7 +17,7 @@ public class TCPsender extends TCPbase{
   }
 
   public void sendFile(){
-    //TODO: Wait till we can send data
+    // Possibly change this into the future with a thread synchronized lock
     while(canSendData == false);
     System.out.println("Sending file");
 
@@ -30,13 +31,14 @@ public class TCPsender extends TCPbase{
 
     try{
       while(stream.available() > 0){
-        //TODO: set flags
-        Boolean[] flags = new Boolean[]{false, false, false};
-
+        // Create empty data with maximum size
         byte[] data = new byte [Math.min(getMaxDataSize(), stream.available())];
+
+        // Read data into byte array
         stream.read(data, 0, data.length);
+
         System.out.println("Sending data with size: "+ data.length);
-        sendTCP(data, flags);
+        sendTCP(data, new Boolean[]{false, false, false});
       }
 
       stream.close();

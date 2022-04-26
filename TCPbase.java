@@ -5,6 +5,8 @@ import java.net.SocketException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+// Base class for TCP sender and receiver
+// Handles sending and receiving TCP packets
 public abstract class TCPbase extends Thread{
   private boolean doStop = false;
   
@@ -50,7 +52,8 @@ public abstract class TCPbase extends Thread{
     }
   }
 
-  // Receiving data
+  ///////// Receiving data /////////
+
   private void receivedPacket(DatagramPacket packet){
     TCPpacket tcpPacket = new TCPpacket(packet.getData());
 
@@ -62,15 +65,17 @@ public abstract class TCPbase extends Thread{
       return;
     }
 
+    // Packet has ACK flag ... update our latest received ACK
     if(tcpPacket.isAck()){
       if(tcpPacket.ackNum > lastRecAck)
         lastRecAck = tcpPacket.ackNum;
     }
 
+    // Packet has SYN flag ... follow handshake connection procedure
     if(tcpPacket.isSyn()){
       ackNum = tcpPacket.seqNum + 1;
 
-      // No ACK flag ... we are client receiving syn for first time
+      // No ACK flag ... we are receiver receiving syn for first time
       if(tcpPacket.isAck() == false){
         if(tcpPacket.data.length < 4){
           System.out.println("Invalid port number ... no int sent");
@@ -83,10 +88,13 @@ public abstract class TCPbase extends Thread{
           System.out.println("Invalid port number");
           return;
         }
-        this.socket.connect(packet.getAddress(), remotePort);
 
+        //Connect socket and send SYN + ACK back to sender
+        this.socket.connect(packet.getAddress(), remotePort);
         sendTCP(ByteBuffer.allocate(4).putInt(this.socket.getLocalPort()).array(), new Boolean[]{true,true,false});
-      }else{
+      }
+      // We are the origianl sender ... send a final ACK to complete handshake
+      else{
         sendACK();
         System.out.println("Established handshake connection ... can send data now");
         canSendData = true;
@@ -113,17 +121,12 @@ public abstract class TCPbase extends Thread{
     //   }
     // }
 
-    
-    // TODO: remove in future
-    // if(tcpPacket.seqNum){
-    //   System.out.println("Stopping thread");
-    //   stopThread();
-    // }
+    // TODO: add checks for FIN flag to end
   }
 
   abstract void handlePacket(TCPpacket packet);
 
-  // Sending data
+  ///////// Sending data /////////
   void sendACK(){
     seqNum += 1;
     sendTCP(new byte[0], new Boolean[]{false,true,false});
@@ -138,7 +141,7 @@ public abstract class TCPbase extends Thread{
       DatagramPacket packet = new DatagramPacket(tcpData, tcpData.length, ip, remotePort);
       this.socket.send(packet);
 
-      //Increment sequence
+      // Increment sequence after sent packet
       seqNum += data.length;
     }catch(IOException e){
       System.out.println("Failure to send packet");

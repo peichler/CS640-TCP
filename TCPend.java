@@ -70,7 +70,8 @@ public class TCPend {
       System.out.println("Error: sws is not a valid number");
       return;
     }
-    // Create tcp sender here
+
+    // Create tcp sender and start it
     TCPsender sender = new TCPsender(port, ip, remotePort, fileName, mtu, sws);
     sender.start();
     sender.sendFile();
@@ -114,6 +115,7 @@ public class TCPend {
 
     String fileName = args[7];
     
+    // Create tcp receiver and start it
     TCPreceiver receiver = new TCPreceiver(port, mtu, sws, fileName);
     receiver.start();
   }

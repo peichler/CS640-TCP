@@ -4,6 +4,7 @@ import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+// Receives file from sender using TCP from base class
 public class TCPreceiver extends TCPbase{
   FileOutputStream stream;
 
@@ -21,6 +22,7 @@ public class TCPreceiver extends TCPbase{
   public void handlePacket(TCPpacket packet){
     byte[] data = packet.data;
 
+    // Write data to file
     try{
       // Use FileChannel to write at position for out of order data
       // https://stackoverflow.com/questions/9558979/java-outputstream-skip-offset

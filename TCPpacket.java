@@ -11,6 +11,7 @@ public class TCPpacket{
 
   short checksum;
 
+  // Create packet from byte array
   public TCPpacket(byte[] packet){
     if(packet.length < headerSize)
       return;
@@ -41,6 +42,7 @@ public class TCPpacket{
     buff.get(data, 0, data.length);
   }
 
+  // Create packet from variables
   public TCPpacket(int seqNum, int ackNum, long time, Boolean[] flags, byte[] data){
     buff = ByteBuffer.allocate(data.length + headerSize);
 
