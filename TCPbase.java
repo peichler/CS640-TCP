@@ -7,7 +7,8 @@ import java.nio.ByteBuffer;
 
 public abstract class TCPbase extends Thread{
   private boolean doStop = false;
-  private boolean canSendData = false;
+  
+  volatile boolean canSendData = false;
 
   DatagramSocket socket;
   InetAddress ip;
@@ -35,7 +36,7 @@ public abstract class TCPbase extends Thread{
     // We have an ip ... we are the sender so connect and send initial packet
     if(ip != null){
       this.socket.connect(ip, remotePort);
-      sendTCP(ByteBuffer.allocate(4).putInt(this.socket.getPort()).array(), new Boolean[]{true,false,false});
+      sendTCP(ByteBuffer.allocate(4).putInt(this.socket.getLocalPort()).array(), new Boolean[]{true,false,false});
     }
 
     while(running()){
@@ -53,12 +54,13 @@ public abstract class TCPbase extends Thread{
   private void receivedPacket(DatagramPacket packet){
     TCPpacket tcpPacket = new TCPpacket(packet.getData());
 
+    System.out.println("Received packet");
+
     // Incorrect checksum ... drop packet
     if(tcpPacket.isChecksumValid() == false){
       System.out.println("Incorrect checksum ... dropping packet");
       return;
     }
-
 
     if(tcpPacket.isAck()){
       if(tcpPacket.ackNum > lastRecAck)
@@ -71,20 +73,22 @@ public abstract class TCPbase extends Thread{
       // No ACK flag ... we are client receiving syn for first time
       if(tcpPacket.isAck() == false){
         if(tcpPacket.data.length < 4){
-          System.out.println("Invalid port number");
+          System.out.println("Invalid port number ... no int sent");
           return;
         }
 
-        remotePort = tcpPacket.data[0];
+        remotePort = ByteBuffer.wrap(tcpPacket.data).getInt();
 
         if(remotePort < 1 || remotePort > 65535){
           System.out.println("Invalid port number");
           return;
         }
+        this.socket.connect(packet.getAddress(), remotePort);
 
-        sendTCP(ByteBuffer.allocate(4).putInt(this.socket.getPort()).array(), new Boolean[]{true,true,false});
+        sendTCP(ByteBuffer.allocate(4).putInt(this.socket.getLocalPort()).array(), new Boolean[]{true,true,false});
       }else{
         sendACK();
+        System.out.println("Established handshake connection ... can send data now");
         canSendData = true;
       }
     }
@@ -118,7 +122,6 @@ public abstract class TCPbase extends Thread{
   }
 
   abstract void handlePacket(TCPpacket packet);
-
 
   // Sending data
   void sendACK(){

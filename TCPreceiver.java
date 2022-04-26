@@ -21,7 +21,6 @@ public class TCPreceiver extends TCPbase{
   public void handlePacket(TCPpacket packet){
     byte[] data = packet.data;
 
-
     try{
       // Use FileChannel to write at position for out of order data
       // https://stackoverflow.com/questions/9558979/java-outputstream-skip-offset

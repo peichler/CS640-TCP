@@ -16,6 +16,10 @@ public class TCPsender extends TCPbase{
   }
 
   public void sendFile(){
+    //TODO: Wait till we can send data
+    while(canSendData == false);
+    System.out.println("Sending file");
+
     FileInputStream stream = null;
     
     try{
@@ -45,7 +49,7 @@ public class TCPsender extends TCPbase{
   }
 
   public void handlePacket(TCPpacket packet){
-    System.out.println("Handling packet!");
+    System.out.println("Handling packet in sender");
   }
 
   int getMaxDataSize(){

@@ -30,7 +30,7 @@ public class TCPpacket{
     }
 
     for (int i = 0; i<3; i++) {
-      flags[i] = sizeWithFlags % 2 == 1;
+      flags[2-i] = sizeWithFlags % 2 == 1;
       sizeWithFlags = sizeWithFlags >> 1;
     }
 
