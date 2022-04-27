@@ -55,8 +55,9 @@ public class TCPsender extends TCPbase{
       System.out.println(e);
     }
 
-    //TODO: remove this in future
-    // super.stopThread();
+    // TODO: Wait for lastRecAck to match our seqNum
+
+    initiatedClose = true;
     this.sendFIN();
   }
 
