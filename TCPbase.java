@@ -55,12 +55,12 @@ public abstract class TCPbase extends Thread{
   ///////// Receiving data /////////
 
   private void receivedPacket(DatagramPacket packet){
-    TCPpacket tcpPacket = new TCPpacket(packet.getData());
+    TCPpacket tcpPacket = new TCPpacket();
 
     System.out.println("Received packet");
 
     // Incorrect checksum ... drop packet
-    if(tcpPacket.isChecksumValid() == false){
+    if(tcpPacket.isChecksumValid(packet.getData()) == false){
       System.out.println("Incorrect checksum ... dropping packet");
       return;
     }
@@ -152,7 +152,7 @@ public abstract class TCPbase extends Thread{
     try{
       long time = System.nanoTime();
       TCPpacket tcpPacket = new TCPpacket(seqNum, ackNum, time, flags, data);
-      byte[] tcpData = tcpPacket.packetToBytes();
+      byte[] tcpData = tcpPacket.serialize();
 
       DatagramPacket packet = new DatagramPacket(tcpData, tcpData.length, ip, remotePort);
       this.socket.send(packet);
