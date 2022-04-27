@@ -74,8 +74,8 @@ public class TCPsender extends TCPbase{
       edev = 0.0;
       timeout = 2.0*ertt;
     } else {
-      srtt = (double)(System.nanoTime() - packet.time);
-      sdev = Math.abs(srtt - ertt);
+      double srtt = (double)(System.nanoTime() - packet.time);
+      double sdev = Math.abs(srtt - ertt);
       ertt = .875*ertt + (1.0-.875)*srtt;
       edev = .75*edev + (1.0-.75)*sdev;
       timeout = ertt + 4*edev;

@@ -20,7 +20,7 @@ public class TCPreceiver extends TCPbase{
   }
 
   public void handlePacket(TCPpacket packet){
-    byte[] data = packet.data;
+    byte[] data = packet.payloadData;
 
     // Write data to file
     try{

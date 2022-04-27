@@ -77,16 +77,17 @@ public class TCPpacket{
 
         bb.putInt(lengthFlags);
         bb.putShort((short)0);
-        bb.putShort(this.checksum)
+        bb.putShort(this.checksum);
         if(payloadLength != 0) {
-          bb.put(this.payloadData)
+          bb.put(this.payloadData);
         }
 
         // compute checksum if needed
         if (this.checksum == 0) {
             bb.rewind();
             int accumulation = 0;
-            for (int i = 0; i < this.headerLength / 2; i++) {
+            // TODO: check if changing to headerSize is correct ... was headerLength before
+            for (int i = 0; i < this.headerSize / 2; i++) {
                 accumulation += 0xffff & bb.getShort();
             }
             accumulation = ((accumulation >> 16) & 0xffff)
@@ -105,7 +106,8 @@ public class TCPpacket{
         this.ackNum = bb.getInt();
         this.time = bb.getLong();
 
-        int lengthFlags = bb.getInt(lengthFlags);
+        // TODO: removed length flags in bb.getInt() is that correct?
+        int lengthFlags = bb.getInt();
 
         for (int i = 0; i < 3; i++) {
           flags[i] = lengthFlags % 2 == 1;
@@ -119,7 +121,7 @@ public class TCPpacket{
 
         // just a check, delete later
         if(bb.remaining() != payloadLength) {
-          System.out.println("Payload length is wrong")
+          System.out.println("Payload length is wrong");
         }
 
         this.payloadData = new byte[payloadLength];

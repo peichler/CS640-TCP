@@ -61,16 +61,16 @@ public abstract class TCPbase extends Thread{
   private void receivedPacket(DatagramPacket packet){
     TCPpacket tcpPacket = new TCPpacket();
 
-    printPacket(tcpPacket, "rcv");
-
     // Incorrect checksum ... drop packet
     if(tcpPacket.isChecksumValid(packet.getData()) == false){
       System.out.println("Incorrect checksum ... dropping packet");
       return;
     }
 
+    printPacket(tcpPacket, "rcv");
+
     // Update our ACK num if it is the next packet
-    int prevSeq = tcpPacket.seqNum - tcpPacket.dataSize;
+    int prevSeq = tcpPacket.seqNum - tcpPacket.payloadData.length;
     if(prevSeq == ackNum)
       ackNum = tcpPacket.seqNum + 1;
 
