@@ -30,6 +30,7 @@ public class TCPsender extends TCPbase{
     }
 
     try{
+      // TODO: Add support for resending unacked packets
       while(stream.available() > 0){
         // Create empty data with maximum size
         byte[] data = new byte [Math.min(getMaxDataSize(), stream.available())];
@@ -47,7 +48,8 @@ public class TCPsender extends TCPbase{
     }
 
     //TODO: remove this in future
-    super.stopThread();
+    // super.stopThread();
+    this.sendFIN();
   }
 
   public void handlePacket(TCPpacket packet){

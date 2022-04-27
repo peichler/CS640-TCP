@@ -101,14 +101,25 @@ public abstract class TCPbase extends Thread{
       }
     }
     // Packet is not syn or ack ... handle packet by application
-    else if(tcpPacket.isAck() == false){
+    else if(tcpPacket.isAck() == false && tcpPacket.isFIN() == false){
       handlePacket(tcpPacket);
 
       // Send a packet back to acknoledge this packet
+      // TODO: check if this is in correct order
       ackNum = tcpPacket.seqNum + 1;
       sendACK();
     }
 
+    if(tcpPacket.isFIN()){
+      ackNum = tcpPacket.seqNum + 1;
+      if(tcpPacket.isAck() == false){
+        sendFIN();
+      }else{
+        // TODO: wait for 16x average packet time
+        Thread.sleep(5000);
+        sendACK();
+      }
+    }
     // Sequence number has already been initialized
     // else{
     //   int prevSeq = tcpPacket.seqNum - tcpPacket.dataSize;
@@ -130,6 +141,11 @@ public abstract class TCPbase extends Thread{
   void sendACK(){
     seqNum += 1;
     sendTCP(new byte[0], new Boolean[]{false,true,false});
+  }
+
+  void sendFIN(){
+    seqNum += 1;
+    sendTCP(new byte[0], new Boolean[]{false,false,true});
   }
 
   void sendTCP(byte[] data, Boolean[] flags) {
