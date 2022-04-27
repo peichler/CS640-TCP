@@ -5,15 +5,23 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.lang.Math;
 
 // Sends file to receiver using TCP from base class
 public class TCPsender extends TCPbase{
+
+  double timeout;
+  double ertt;
+  double edev;
 
   public TCPsender(int port, InetAddress ip, int remotePort, String fileName, int mtu, int sws){
     super(port, fileName, mtu, sws);
 
     this.ip = ip;
     this.remotePort = remotePort;
+    this.timeout = 5.0;
+    this.ertt = 0.0;
+    this.edev = 0.0;
   }
 
   public void sendFile(){
@@ -52,6 +60,23 @@ public class TCPsender extends TCPbase{
 
   public void handlePacket(TCPpacket packet){
     System.out.println("Handling packet in sender");
+
+
+
+  }
+
+  private void checkTimeout(TCPpacket packet) {
+    if (packet.ackNum == 0) {
+      ertt = (double)(System.nanoTime() - packet.time);
+      edev = 0.0;
+      timeout = 2.0*ertt;
+    } else {
+      srtt = (double)(System.nanoTime() - packet.time);
+      sdev = Math.abs(srtt - ertt);
+      ertt = .875*ertt + (1.0-.875)*srtt;
+      edev = .75*edev + (1.0-.75)*sdev;
+      timeout = ertt + 4*edev;
+    }
   }
 
   int getMaxDataSize(){
