@@ -24,17 +24,15 @@ public class TCPpacket{
     this.checksum = 0;
   }
 
-  public byte[] packetToBytes(){
-    return buff.array();
-  }
+  public TCPpacket(){}
 
   public boolean isChecksumValid(byte[] data){
-    deserialize(data);
+    this.deserialize(data);
 
     short oldCheckSum = this.checksum;
     this.checksum = 0;
 
-    serialize();
+    this.serialize();
 
     return oldCheckSum == this.checksum;
   }
@@ -45,7 +43,7 @@ public class TCPpacket{
   }
 
   public boolean isSyn(){
-    return flags[0];
+    return flags[2];
   }
 
   public boolean isFin(){
@@ -53,7 +51,7 @@ public class TCPpacket{
   }
 
   public boolean isAck(){
-    return flags[2];
+    return flags[0];
   }
 
   public byte[] serialize() {
@@ -70,25 +68,14 @@ public class TCPpacket{
         bb.putInt(this.ackNum);
         bb.putLong(this.time);
 
-        int flagTotal = 0;
-        if(this.flags[0]) {
-          flagTotal += 32;
-        }
-        if(this.flags[1]) {
-          flagTotal += 64;
-        }
-        if(this.flags[2]) {
-          flagTotal += 128;
+        int lengthFlags = payloadLength;
+
+        for (int i = 0; i < 3; i++) {
+          lengthFlags = lengthFlags << 1;
+          lengthFlags += flags[2-i] ? 1 : 0;
         }
 
-        byte[] lengthFlags = new byte[] {
-          (byte)((payloadLength & 0xFF000000) >> 24 + flagTotal),
-          (byte)((payloadLength & 0x00FF0000) >> 16),
-          (byte)((payloadLength & 0x0000FF00) >> 8),
-          (byte)(payloadLength & 0x000000FF)
-        };
-
-        bb.put(lengthFlags);
+        bb.putInt(lengthFlags);
         bb.putShort((short)0);
         bb.putShort(this.checksum)
         if(payloadLength != 0) {
@@ -113,30 +100,19 @@ public class TCPpacket{
 
     public TCPpacket deserialize(byte[] data) {
         ByteBuffer bb = ByteBuffer.wrap(data);
-        byte[] lengthFlags = new byte[4];
 
         this.seqNum = bb.getInt();
         this.ackNum = bb.getInt();
         this.time = bb.getLong();
 
-        bb.getInt(lengthFlags);
+        int lengthFlags = bb.getInt(lengthFlags);
 
-        int flags = (int)lengthFlags[0];
-
-        if (flags >= 128) {
-          flags -= 128;
-          this.flags[2] = true;
-        }
-        if (flags >= 64) {
-          flags -= 64;
-          this.flags[1] = true;
-        }
-        if (flags >= 32) {
-          flags -= 32;
-          this.flags[0] = true;
+        for (int i = 0; i < 3; i++) {
+          flags[i] = lengthFlags % 2 == 1;
+          lengthFlags = lengthFlags >> 1;
         }
 
-        int payloadLength = flags << 24 + (int)lengthFlags[1] << 16 + (int)lengthFlags[2] << 8 (int)lengthFlags[3];
+        int payloadLength = lengthFlags;
 
         bb.getShort();
         this.checksum = bb.getShort();
