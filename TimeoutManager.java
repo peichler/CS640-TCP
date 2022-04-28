@@ -39,7 +39,7 @@ public class TimeoutManager{
 	// Creates a timeout packet and starts thread
 	// Adds timeout packet to queue
 	public void startPacketTimer(byte[] data, int dataAck){
-		TimeoutPacket toPacket = new TimeoutPacket(timeout, this, data, dataAck);
+		TimeoutPacket toPacket = new TimeoutPacket(this, data, dataAck);
 		toPacket.start();
 	}
 
