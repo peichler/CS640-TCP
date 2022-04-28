@@ -5,7 +5,7 @@ public class TimeoutPacket extends Thread{
 	private int curRetrans;
 	private TimeoutManager toMan;
 	private byte[] data;
-	private long startTime
+	private long startTime;
 	private int dataAck;
 
 	public TimeoutPacket(TimeoutManager toMan, byte[] data, int dataAck){
