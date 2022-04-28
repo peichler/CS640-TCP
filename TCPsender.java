@@ -45,7 +45,7 @@ public class TCPsender extends TCPbase{
 
         System.out.println("Sending data with size: "+ data.length);
 
-        sendTCP(data, new boolean[]{false, false, false});
+        sendTCP(data, new Boolean[]{false, false, false});
       }
 
       stream.close();

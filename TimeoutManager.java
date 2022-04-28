@@ -18,7 +18,7 @@ public class TimeoutManager{
 		return base;
 	}
 
-	private void updateTimeout(TCPpacket packet) {
+	public void updateTimeout(TCPpacket packet) {
 	    if (packet.ackNum == 0) {
 	      ertt = (double)(System.nanoTime() - packet.time);
 	      edev = 0.0;

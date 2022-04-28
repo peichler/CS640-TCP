@@ -171,7 +171,7 @@ public abstract class TCPbase extends Thread{
 
   ///////// Sending data /////////
   void sendACK(TCPpacket origPacket){
-    toMan.updateTimeout(packet);
+    toMan.updateTimeout(origPacket);
     sendTCP(new byte[0], new Boolean[]{false,false,true}, origPacket.time);
   }
 
