@@ -5,7 +5,7 @@ public class TimeoutPacket extends Thread{
 	private int curRetrans;
 	private TimeoutManager toMan;
 	private byte[] data;
-	private long startTime
+	private long startTime;
 	private int dataAck;
 
 	public TimeoutPacket(TimeoutManager toMan, byte[] data, int dataAck){
@@ -20,11 +20,11 @@ public class TimeoutPacket extends Thread{
 	public void run(){
 		while(true) {
 
-			double timeDiff = (System.nanoTime() - this.startTime).doubleValue();
+			double timeDiff = (double)(System.nanoTime() - this.startTime);
 
 			if(timeDiff >= toMan.getTimeout()) {
 				this.startTime = System.nanoTime();
-				toMan.resendPacket(data, new boolean[]{false, false, false});
+				toMan.resendPacket(data);
 				curRetrans += 1;
 				if(curRetrans >= 16){
 					// TODO: end program with error
