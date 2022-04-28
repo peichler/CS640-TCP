@@ -43,7 +43,7 @@ public class TCPpacket{
   }
 
   public boolean isSyn(){
-    return flags[2];
+    return flags[0];
   }
 
   public boolean isFin(){
@@ -51,7 +51,7 @@ public class TCPpacket{
   }
 
   public boolean isAck(){
-    return flags[0];
+    return flags[2];
   }
 
   public byte[] serialize() {
@@ -68,14 +68,13 @@ public class TCPpacket{
         bb.putInt(this.ackNum);
         bb.putLong(this.time);
 
-        int lengthFlags = payloadLength;
-
-        for (int i = 0; i < 3; i++) {
-          lengthFlags = lengthFlags << 1;
-          lengthFlags += flags[2-i] ? 1 : 0;
+        int sizeWithFlags = payloadLength;
+        for (int i=0; i<3; i++) {
+          sizeWithFlags = sizeWithFlags << 1;
+          sizeWithFlags += flags[i] ? 1 : 0;
         }
 
-        bb.putInt(lengthFlags);
+        bb.putInt(sizeWithFlags);
         bb.putShort((short)0);
         bb.putShort(this.checksum);
         if(payloadLength != 0) {
@@ -106,23 +105,26 @@ public class TCPpacket{
         this.ackNum = bb.getInt();
         this.time = bb.getLong();
 
-        // TODO: removed length flags in bb.getInt() is that correct?
-        int lengthFlags = bb.getInt();
-
-        for (int i = 0; i < 3; i++) {
-          flags[i] = lengthFlags % 2 == 1;
-          lengthFlags = lengthFlags >> 1;
+        int sizeWithFlags = bb.getInt();
+    
+        int payloadLength = sizeWithFlags >> 3;
+        if(payloadLength > data.length - headerSize){
+          System.out.println("Incorrect data length");
+          return null;
         }
 
-        int payloadLength = lengthFlags;
+        for (int i = 0; i<3; i++) {
+          flags[2-i] = sizeWithFlags % 2 == 1;
+          sizeWithFlags = sizeWithFlags >> 1;
+        }
 
         bb.getShort();
         this.checksum = bb.getShort();
 
         // just a check, delete later
-        if(bb.remaining() != payloadLength) {
-          System.out.println("Payload length is wrong");
-        }
+        // if(bb.remaining() != payloadLength) {
+        //   System.out.println("Payload length is wrong");
+        // }
 
         this.payloadData = new byte[payloadLength];
         bb.get(payloadData);

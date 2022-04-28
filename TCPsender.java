@@ -40,13 +40,16 @@ public class TCPsender extends TCPbase{
     try{
       // TODO: Add support for resending unacked packets
       while(stream.available() > 0){
+        // Make sure we are in sliding window ... if not wait
+        // while(seqNum - lastRecAck >= sws);
+        // while(timeoutManager.getNumPackets() >= sws);
+
         // Create empty data with maximum size
         byte[] data = new byte [Math.min(getMaxDataSize(), stream.available())];
 
         // Read data into byte array
         stream.read(data, 0, data.length);
 
-        System.out.println("Sending data with size: "+ data.length);
         sendTCP(data, new Boolean[]{false, false, false});
       }
 
@@ -55,7 +58,9 @@ public class TCPsender extends TCPbase{
       System.out.println(e);
     }
 
-    // TODO: Wait for lastRecAck to match our seqNum
+    // TODO: check if this needs to be synchonized
+    while(lastRecAck < seqNum);
+    System.out.println("Initiating close");
 
     initiatedClose = true;
     this.sendFIN();
