@@ -171,12 +171,11 @@ public abstract class TCPbase extends Thread{
 
   ///////// Sending data /////////
   void sendACK(TCPpacket origPacket){
-    // seqNum += 1;
+    toMan.updateTimeout(packet);
     sendTCP(new byte[0], new Boolean[]{false,false,true}, origPacket.time);
   }
 
   void sendFIN(){
-    // seqNum += 1;
     sendTCP(new byte[0], new Boolean[]{false,true,true});
   }
 
@@ -202,7 +201,7 @@ public abstract class TCPbase extends Thread{
 
     // Check if packet is required to be ACK back ... if so add to list to make sure it gets transmitted
     if(tcpPacket.isSyn() || tcpPacket.isFin() || tcpPacket.payloadData.length > 0){
-      // TODO: add to list
+      toMan.startPacketTimer(data, seqNum + Math.max(tcpPacket.payloadData.length, 1));
     }
   }
 
