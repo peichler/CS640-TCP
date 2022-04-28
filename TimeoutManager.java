@@ -20,17 +20,17 @@ public class TimeoutManager{
 
 	private void updateTimeout(TCPpacket packet) {
 	    if (packet.ackNum == 0) {
-	      ertt = (System.nanoTime() - packet.time).doubleValue();
+	      ertt = (double)(System.nanoTime() - packet.time);
 	      edev = 0.0;
 	      timeout = 2.0*ertt;
 	    } else {
-	      double srtt = (System.nanoTime() - packet.time).doubleValue();
+	      double srtt = (double)(System.nanoTime() - packet.time);
 	      double sdev = Math.abs(srtt - ertt);
 	      ertt = .875*ertt + (1.0-.875)*srtt;
 	      edev = .75*edev + (1.0-.75)*sdev;
 	      timeout = ertt + 4*edev;
 		 }
-	  }
+	 }
 
 	public double getTimeout() {
 		return timeout;
@@ -44,7 +44,7 @@ public class TimeoutManager{
 	}
 
 	public void resendPacket(byte[] data) {
-		base.sendTCP(data, new boolean[]{false, false, false});
+		base.sendTCP(data, new Boolean[]{false, false, false});
 	}
 
 	// // Removes all packets based on ack number received

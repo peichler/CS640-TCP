@@ -32,7 +32,7 @@ public abstract class TCPbase extends Thread{
     this.fileName = fileName;
     this.mtu = mtu;
     this.sws = sws;
-    toMan = new TimeoutManager(this, this.timeout);
+    toMan = new TimeoutManager(this);
 
     try{
       this.socket = new DatagramSocket(port);  
