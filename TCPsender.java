@@ -37,7 +37,6 @@ public class TCPsender extends TCPbase{
         // while(seqNum - lastRecAck >= sws);
         // while(timeoutManager.getNumPackets() >= sws);
 
-        int dataAck = 0;
         // Create empty data with maximum size
         byte[] data = new byte [Math.min(getMaxDataSize(), stream.available())];
 
@@ -45,9 +44,6 @@ public class TCPsender extends TCPbase{
         stream.read(data, 0, data.length);
 
         System.out.println("Sending data with size: "+ data.length);
-
-        toMan.startPacketTimer(data, dataAck);
-        dataAck += getMaxDataSize();
 
         sendTCP(data, new boolean[]{false, false, false});
       }
@@ -66,10 +62,7 @@ public class TCPsender extends TCPbase{
   }
 
   public void handlePacket(TCPpacket packet){
-    System.out.println("Handling packet in sender");
-
-    toMan.updateTimeout(packet);
-
+    // System.out.println("Handling packet in sender");
   }
 
   int getMaxDataSize(){
