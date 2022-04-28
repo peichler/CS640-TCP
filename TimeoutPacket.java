@@ -1,39 +1,42 @@
 // Individual timeout thread for each packet sent
 // Objects are destroyed when ACK is received for this packet
 public class TimeoutPacket extends Thread{
-	// Number of retransmits
-	public int curRetrans = 0;
-	public TCPpacket tcpPacket;
 
-	float timeoutTime
+	private int curRetrans;
+	private TimeoutManager toMan;
+	private byte[] data;
+	private double timeout;
+	private long startTime
+	private int dataAck;
 
-	public TimeoutPacket(TCPpacket tcpPacket, float timeoutTime){
-		this.tcpPacket = tcpPacket;
-		this.timeoutTime = timeoutTime;
+	public TimeoutPacket(double timeout, TimeoutManager toMan, byte[] data, int dataAck){
+		this.timeout = timeout;
+		this.toMan = toMan;
+		this.curRetrans = 0;
+		this.data = data;
+		this.startTime = System.nanoTime();
+		this.dataAck = dataAck;
 	}
 
 	// Thread for timeout wait
 	public void run(){
-		// TODO: wait amount of time
-		// Thread.wait(time);
+		while(true) {
 
-		
-		curRetrans += 1;
-		// Check if retransmit count is greater than 16 ... if so we have reached
-		// maximum number of times ... so end program with error
-		if(curRetrans >= 16){
-			// TODO: end program with error
-			System.out.println("Reached maxiumum retransmits! Stop");
-			return;
-		}
+			double timeDiff = (System.nanoTime() - this.startTime).doubleValue();
 
-		// TODO: send retrasmit
-
-		// Start thread again
-	}
-
-	// Stops thread object, might need to use interupt
-	public void stopThread(){
-		// TODO: stop thread
+			if(timeDiff >= timeout) {
+				this.startTime = System.nanoTime();
+				toMan.resendPacket(data, new boolean[]{false, false, false});
+				curRetrans += 1;
+				if(curRetrans >= 16){
+					// TODO: end program with error
+					System.out.println("Reached maxiumum retransmits! Stop");
+					return;
+				}
+			} else if (this.dataAck < toMan.getBase().getLastRecAck()){
+				return;
+			}
+			
+		}	
 	}
 }

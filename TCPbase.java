@@ -20,16 +20,19 @@ public abstract class TCPbase extends Thread{
   int mtu, sws;
   int seqNum;
   int ackNum;
-  int lastRecAck;
+  int lastRecAck; // maybe make volatile?
   int duplicateAckCount = 0;
 
   boolean initiatedClose;
   boolean waitingForClose;
 
+  TimeoutManager toMan;
+
   public TCPbase(int port, String fileName, int mtu, int sws){
     this.fileName = fileName;
     this.mtu = mtu;
     this.sws = sws;
+    toMan = new TimeoutManager(this, this.timeout);
 
     try{
       this.socket = new DatagramSocket(port);  
@@ -220,5 +223,9 @@ public abstract class TCPbase extends Thread{
 
   public void disconnect(){
     socket.close();
+  }
+
+  public int getLastRecAck(){
+    return lastRecAck;
   }
 }
