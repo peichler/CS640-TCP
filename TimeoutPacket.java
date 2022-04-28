@@ -4,14 +4,14 @@ public class TimeoutPacket extends Thread{
 
 	private int curRetrans;
 	private TimeoutManager toMan;
-	private byte[] data;
+	private TCPpacket tcpPacket;
 	private long startTime;
 	private int dataAck;
 
-	public TimeoutPacket(TimeoutManager toMan, byte[] data, int dataAck){
+	public TimeoutPacket(TimeoutManager toMan, TCPpacket tcpPacket, int dataAck){
 		this.toMan = toMan;
 		this.curRetrans = 0;
-		this.data = data;
+		this.tcpPacket = tcpPacket;
 		this.startTime = System.nanoTime();
 		this.dataAck = dataAck;
 	}
@@ -20,11 +20,11 @@ public class TimeoutPacket extends Thread{
 	public void run(){
 		while(true) {
 
-			double timeDiff = (double)(System.nanoTime() - this.startTime);
+			double timeDiff = (double)(System.nanoTime() - this.startTime) * 1e9;
 
 			if(timeDiff >= toMan.getTimeout()) {
 				this.startTime = System.nanoTime();
-				toMan.resendPacket(data);
+				toMan.resendPacket(tcpPacket);
 				curRetrans += 1;
 				if(curRetrans >= 16){
 					// TODO: end program with error

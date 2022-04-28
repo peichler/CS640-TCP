@@ -201,7 +201,20 @@ public abstract class TCPbase extends Thread{
 
     // Check if packet is required to be ACK back ... if so add to list to make sure it gets transmitted
     if(tcpPacket.isSyn() || tcpPacket.isFin() || tcpPacket.payloadData.length > 0){
-      toMan.startPacketTimer(data, seqNum + Math.max(tcpPacket.payloadData.length, 1));
+      toMan.startPacketTimer(tcpPacket, seqNum + Math.max(tcpPacket.payloadData.length, 1));
+    }
+  }
+
+  public void resendTCP(TCPpacket tcpPacket){
+    byte[] tcpData = tcpPacket.serialize();
+
+    DatagramPacket packet = new DatagramPacket(tcpData, tcpData.length, ip, remotePort);
+
+    printPacket(tcpPacket, "snd");
+    try{
+      this.socket.send(packet);
+    }catch(IOException e){
+      System.out.println("Failure to send packet");
     }
   }
 

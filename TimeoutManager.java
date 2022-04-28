@@ -38,13 +38,14 @@ public class TimeoutManager{
 
 	// Creates a timeout packet and starts thread
 	// Adds timeout packet to queue
-	public void startPacketTimer(byte[] data, int dataAck){
-		TimeoutPacket toPacket = new TimeoutPacket(this, data, dataAck);
+	public void startPacketTimer(TCPpacket tcpPacket, int dataAck){
+		TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, dataAck);
 		toPacket.start();
 	}
 
-	public void resendPacket(byte[] data) {
-		base.sendTCP(data, new Boolean[]{false, false, false});
+	public void resendPacket(TCPpacket tcpPacket) {
+		// base.sendTCP(data, new Boolean[]{false, false, false});
+		base.resendTCP(tcpPacket);
 	}
 
 	// // Removes all packets based on ack number received
