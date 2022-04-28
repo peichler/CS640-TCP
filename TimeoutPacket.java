@@ -5,12 +5,10 @@ public class TimeoutPacket extends Thread{
 	private int curRetrans;
 	private TimeoutManager toMan;
 	private byte[] data;
-	private double timeout;
 	private long startTime
 	private int dataAck;
 
-	public TimeoutPacket(double timeout, TimeoutManager toMan, byte[] data, int dataAck){
-		this.timeout = timeout;
+	public TimeoutPacket(TimeoutManager toMan, byte[] data, int dataAck){
 		this.toMan = toMan;
 		this.curRetrans = 0;
 		this.data = data;
@@ -24,7 +22,7 @@ public class TimeoutPacket extends Thread{
 
 			double timeDiff = (System.nanoTime() - this.startTime).doubleValue();
 
-			if(timeDiff >= timeout) {
+			if(timeDiff >= toMan.getTimeout()) {
 				this.startTime = System.nanoTime();
 				toMan.resendPacket(data, new boolean[]{false, false, false});
 				curRetrans += 1;
@@ -33,10 +31,9 @@ public class TimeoutPacket extends Thread{
 					System.out.println("Reached maxiumum retransmits! Stop");
 					return;
 				}
-			} else if (this.dataAck < toMan.getBase().getLastRecAck()){
+			} else if (this.dataAck <= toMan.getBase().getLastRecAck()){
 				return;
 			}
-			
 		}	
 	}
 }
