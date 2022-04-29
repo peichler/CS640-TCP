@@ -13,7 +13,7 @@ public class TimeoutManager{
 
 	public TimeoutManager(TCPbase base) {
 		this.base = base;
-		this.timeout = (long)5e9;
+		this.timeout = (long)1e9;
     	this.ertt = 0.0;
     	this.edev = 0.0;
 	}
@@ -30,10 +30,12 @@ public class TimeoutManager{
 	      edev = .75*edev + (1.0-.75)*sdev;
 	      timeout = (long)(ertt + 4*edev);
 		 }
+
+		 System.out.println("errt: ," + (ertt/1e6) + "edev: " + (edev/1e6) + ",new timeout: " + (timeout/1e6));
 	 }
 
-	public double getTimeout() {
-		return timeout;
+	public long getTimeout() {
+		return Math.max(timeout, 10000000);
 	}
 
 	public void startPacketTimer(TCPpacket tcpPacket){
@@ -46,7 +48,7 @@ public class TimeoutManager{
 		synchronized(packetBuffer){
 			TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, curRetrans);
 			packetBuffer.add(toPacket);
-			timer.schedule(toPacket, (int)(timeout/(long)1e6));
+			timer.schedule(toPacket, (int)(getTimeout()/(long)1e6));
 		}
 	}
 	
@@ -54,7 +56,6 @@ public class TimeoutManager{
 		if(packet.curRetrans >= 16){
 			System.out.println("Over max retransmissions ... quitting program");
 			base.stopThread();
-			// TODO: stop sender thread if running
 			return;
 		}
 
@@ -67,11 +68,24 @@ public class TimeoutManager{
 		}
 	}
 
+	public void resendPacket(TCPpacket ackPacket){
+		synchronized(packetBuffer){
+			for(TimeoutPacket packet : packetBuffer){
+				if(packet.tcpPacket.seqNum == ackPacket.ackNum){
+					resendPacket(packet);
+					return;
+				}
+			}
+		}
+		System.out.println("Error packet not in packet buffer");
+	}
+
 	// // Removes all packets based on ack number received
 	public void removePacket(int ackNum){
 		synchronized(packetBuffer){
 			while(packetBuffer.size() > 0 && packetBuffer.peek().tcpPacket.getReturnAck() <= ackNum){
 				TimeoutPacket toPacket = packetBuffer.poll();
+				System.out.println("Removing packet with seqNum: " + toPacket.tcpPacket.seqNum);
 				toPacket.cancel();
 			}
 			timer.purge();

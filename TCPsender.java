@@ -23,6 +23,8 @@ public class TCPsender extends TCPbase{
     // if(canSendData() == false)
     //   return;
     while(established == false);
+    if(running() == false)
+      return;
 
     System.out.println("Sending file");
 
@@ -48,6 +50,7 @@ public class TCPsender extends TCPbase{
 
         if(running() == false)
           return;
+        dataTransfered += data.length;
         sendTCP(data, new Boolean[]{false, false, false});
       }
 

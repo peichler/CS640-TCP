@@ -8,6 +8,7 @@ public class DelayedClose extends Thread{
   }
 
   public void run(){
+    System.out.println("Closing in " + time + " ms");
     try{
         Thread.sleep(time);
     }catch(InterruptedException ex){

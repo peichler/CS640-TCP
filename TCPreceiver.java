@@ -27,9 +27,11 @@ public class TCPreceiver extends TCPbase{
 
     if(packet.seqNum < ackNum){
       System.out.println("Duplicate packet ... dropping");
+      outOfSeqPackets += 1;
       return;
     }else if(packet.seqNum > ackNum){
       System.out.println("Packet out of order ... putting it in packet buffer");
+      outOfSeqPackets += 1;
       // Check for duplicate packet
       for (TCPpacket p : packetBuffer){
         if(p.seqNum == packet.seqNum)
@@ -43,6 +45,7 @@ public class TCPreceiver extends TCPbase{
     }
 
     ackNum = packet.seqNum + Math.max(packet.payloadData.length, 1);
+    dataTransfered += packet.payloadData.length;
 
     // Write data to file
     try{

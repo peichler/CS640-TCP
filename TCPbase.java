@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.text.DecimalFormat;
 
 // Base class for TCP sender and receiver
 // Handles sending and receiving TCP packets
@@ -27,6 +28,7 @@ public abstract class TCPbase extends Thread{
   int lastRecAck; // maybe make volatile?
   // Integer lastRecAck;
   int duplicateAckCount = 0;
+  long startTime;
 
   volatile boolean established = false;
   boolean initiatedClose;
@@ -34,6 +36,9 @@ public abstract class TCPbase extends Thread{
   boolean syn_rec;
 
   TimeoutManager toMan;
+
+  int dataTransfered, packetsSent, packetsReceived, outOfSeqPackets, incorrectChecksumNum, retransNum, duplicateAcksNum;
+
   // TODO: remove
   Random rand = new Random();
   private final Object lock = new Object();
@@ -43,6 +48,7 @@ public abstract class TCPbase extends Thread{
     this.fileName = fileName;
     this.mtu = mtu;
     this.sws = sws;
+    this.startTime = System.nanoTime();
     toMan = new TimeoutManager(this);
 
     try{
@@ -79,11 +85,13 @@ public abstract class TCPbase extends Thread{
   private void receivedPacket(DatagramPacket packet){
     // sendRecLock.lock();
     // try{
+      packetsReceived += 1;
       TCPpacket tcpPacket = new TCPpacket();
 
       // Incorrect checksum ... drop packet
       if(tcpPacket.isChecksumValid(packet.getData()) == false){
         System.out.println("Incorrect checksum ... dropping packet");
+        incorrectChecksumNum += 1;
         return;
       }
 
@@ -170,7 +178,7 @@ public abstract class TCPbase extends Thread{
     else{
       sendACK(tcpPacket);
       // TODO: wait for 16x average packet time
-      DelayedClose delay = new DelayedClose(this, 5000);
+      DelayedClose delay = new DelayedClose(this, (int)toMan.getTimeout()/1000000 * 16);
       delay.start();
     }
   }
@@ -190,14 +198,16 @@ public abstract class TCPbase extends Thread{
     }
     else if(tcpPacket.ackNum == lastRecAck){
       duplicateAckCount += 1;
+      duplicateAcksNum += 1;
       if(duplicateAckCount == 3)
-        handleTripleAck();
+        handleTripleAck(tcpPacket);
     }
   }
 
-  void handleTripleAck(){
+  void handleTripleAck(TCPpacket tcpPacket){
     // TODO: implement triple ack retramission
     System.out.println("Triple ACK occured!");
+    toMan.resendPacket(tcpPacket);
   }
 
   abstract void handlePacket(TCPpacket packet);
@@ -256,6 +266,7 @@ public abstract class TCPbase extends Thread{
       // TODO: remove
       if(dropped == false)
         this.socket.send(packet);
+      packetsSent += 1;
     }catch(IOException e){
       System.out.println("Failure to send packet");
     }
@@ -265,6 +276,8 @@ public abstract class TCPbase extends Thread{
     // sendRecLock.lock();
     // try{
       tcpPacket.ackNum = ackNum;
+      tcpPacket.time = System.nanoTime();
+      retransNum += 1;
 
       sendTCP(tcpPacket);
     // } finally{
@@ -273,13 +286,19 @@ public abstract class TCPbase extends Thread{
   }
 
   void printPacket(TCPpacket tcpPacket, String tType){
-    System.out.println(tType + " time " + (tcpPacket.isSyn() ? "S " : "- ") + (tcpPacket.isAck() ? "A " : "- ") + 
+    long time = (System.nanoTime() - startTime) /((long)1e6);
+    DecimalFormat df = new DecimalFormat("##.###");
+
+    System.out.println(tType + " " + df.format((double)time/1e3) + " " + (tcpPacket.isSyn() ? "S " : "- ") + (tcpPacket.isAck() ? "A " : "- ") + 
       (tcpPacket.isFin() ? "F " : "- ") + (tcpPacket.payloadData.length > 0 ? "D " : "- ") + tcpPacket.seqNum + 
       " " + tcpPacket.payloadData.length + " " + tcpPacket.ackNum);
   }
 
   void printPacketFake(TCPpacket tcpPacket, String tType){
-    System.out.println("xx " + tType + " time " + (tcpPacket.isSyn() ? "S " : "- ") + (tcpPacket.isAck() ? "A " : "- ") + 
+    long time = (System.nanoTime() - startTime) /((long)1e6);
+    DecimalFormat df = new DecimalFormat("##.###");
+
+    System.out.println("xx " + tType + " " + df.format((double)time/1e3) + " " + (tcpPacket.isSyn() ? "S " : "- ") + (tcpPacket.isAck() ? "A " : "- ") + 
       (tcpPacket.isFin() ? "F " : "- ") + (tcpPacket.payloadData.length > 0 ? "D " : "- ") + tcpPacket.seqNum + 
       " " + tcpPacket.payloadData.length + " " + tcpPacket.ackNum);
   }
@@ -287,6 +306,8 @@ public abstract class TCPbase extends Thread{
   public synchronized void stopThread(){
     this.doStop = true;
     disconnect();
+    established = true;
+    printStats();
     // synchronized(lock){
     //   established = false;
     //   established.notify();
@@ -315,5 +336,17 @@ public abstract class TCPbase extends Thread{
 
   public int getLastRecAck(){
     return lastRecAck;
+  }
+
+  void printStats(){
+    System.out.println("======================================");
+    System.out.println("Data transfered: " + dataTransfered);
+    System.out.println("Packets sent/received: " + packetsSent + "/" + packetsReceived);
+    System.out.println("Out of sequence packets: " + outOfSeqPackets);
+    System.out.println("Packets discarded due to incorrect checksum: " + incorrectChecksumNum);
+    System.out.println("Packets retransmited: " + retransNum);
+    System.out.println("Duplicate ACKs: " + duplicateAcksNum);
+    System.out.println("======================================");
+
   }
 }
