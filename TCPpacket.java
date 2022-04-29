@@ -54,6 +54,10 @@ public class TCPpacket{
     return flags[2];
   }
 
+  public int getReturnAck(){
+    return this.seqNum + this.payloadData.length;
+  }
+
   public byte[] serialize() {
         int payloadLength = 0;
         if(payloadData != null) {
@@ -76,6 +80,7 @@ public class TCPpacket{
 
         bb.putInt(sizeWithFlags);
         bb.putShort((short)0);
+        this.checksum = 0;
         bb.putShort(this.checksum);
         if(payloadLength != 0) {
           bb.put(this.payloadData);
@@ -120,11 +125,6 @@ public class TCPpacket{
 
         bb.getShort();
         this.checksum = bb.getShort();
-
-        // just a check, delete later
-        // if(bb.remaining() != payloadLength) {
-        //   System.out.println("Payload length is wrong");
-        // }
 
         this.payloadData = new byte[payloadLength];
         bb.get(payloadData);

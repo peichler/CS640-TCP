@@ -29,6 +29,14 @@ public class TCPreceiver extends TCPbase{
       return;
     }else if(packet.seqNum > ackNum){
       System.out.println("Packet out of order ... putting it in packet buffer");
+      // Check for duplicate packet
+      for (TCPpacket p : packetBuffer){
+        if(p.seqNum == packet.seqNum)
+          return;
+        else if(p.seqNum > packet.seqNum)
+          break;
+      }
+
       packetBuffer.add(packet);
       return;
     }

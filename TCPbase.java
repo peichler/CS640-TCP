@@ -4,13 +4,17 @@ import java.net.DatagramPacket;
 import java.net.SocketException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 
 // Base class for TCP sender and receiver
 // Handles sending and receiving TCP packets
 public abstract class TCPbase extends Thread{
   private boolean doStop = false;
   
-  volatile boolean canSendData = false;
+  // final Object sendRecLock = new Object();
+  // private final ReentrantLock sendRecLock = new ReentrantLock();
+
 
   DatagramSocket socket;
   InetAddress ip;
@@ -21,12 +25,19 @@ public abstract class TCPbase extends Thread{
   int seqNum;
   int ackNum;
   int lastRecAck; // maybe make volatile?
+  // Integer lastRecAck;
   int duplicateAckCount = 0;
 
+  volatile boolean established = false;
   boolean initiatedClose;
   boolean waitingForClose;
+  boolean syn_rec;
 
   TimeoutManager toMan;
+  // TODO: remove
+  Random rand = new Random();
+  private final Object lock = new Object();
+  protected final CountDownLatch ready = new CountDownLatch(1);
 
   public TCPbase(int port, String fileName, int mtu, int sws){
     this.fileName = fileName;
@@ -66,46 +77,51 @@ public abstract class TCPbase extends Thread{
   ///////// Receiving data /////////
 
   private void receivedPacket(DatagramPacket packet){
-    TCPpacket tcpPacket = new TCPpacket();
+    // sendRecLock.lock();
+    // try{
+      TCPpacket tcpPacket = new TCPpacket();
 
-    // Incorrect checksum ... drop packet
-    if(tcpPacket.isChecksumValid(packet.getData()) == false){
-      System.out.println("Incorrect checksum ... dropping packet");
-      return;
-    }
-
-    printPacket(tcpPacket, "rcv");   
-
-    // Packet has ACK flag ... update our latest received ACK
-    if(tcpPacket.isAck()){
-      handleAckPacket(tcpPacket);
-    }
-
-    // Packet has SYN flag ... follow handshake connection procedure
-    if(tcpPacket.isSyn()){
-      updateAckNum(tcpPacket);
-      // Set up socket if it isn't connected  
-      if(this.socket.isConnected() == false){
-        remotePort = packet.getPort();
-        ip = packet.getAddress();
-        connectSocket();
+      // Incorrect checksum ... drop packet
+      if(tcpPacket.isChecksumValid(packet.getData()) == false){
+        System.out.println("Incorrect checksum ... dropping packet");
+        return;
       }
 
-      handleSynPacket(tcpPacket, packet);
-    }
-    // Packet has FIN flag ... follow closing procedure
-    else if(tcpPacket.isFin()){
-      updateAckNum(tcpPacket);
-      handleFinPacket(tcpPacket);
-    }
-    // Packet is data ... handle packet by application
-    else if(tcpPacket.payloadData.length > 0){
-      handlePacket(tcpPacket);
-      sendACK(tcpPacket);
-    }
-    else{
-      updateAckNum(tcpPacket);
-    }
+      printPacket(tcpPacket, "rcv");   
+
+      // Packet has ACK flag ... update our latest received ACK
+      if(tcpPacket.isAck()){
+        handleAckPacket(tcpPacket);
+      }
+
+      // Packet has SYN flag ... follow handshake connection procedure
+      if(tcpPacket.isSyn()){
+        // Set up socket if it isn't connected  
+        if(this.socket.isConnected() == false){
+          remotePort = packet.getPort();
+          ip = packet.getAddress();
+          connectSocket();
+        }
+
+        handleSynPacket(tcpPacket, packet);
+      }
+      // Packet has FIN flag ... follow closing procedure
+      else if(tcpPacket.isFin()){
+        updateAckNum(tcpPacket);
+        handleFinPacket(tcpPacket);
+      }
+      // Packet is data ... handle packet by application
+      else if(tcpPacket.payloadData.length > 0){
+        handlePacket(tcpPacket);
+        sendACK(tcpPacket);
+      }
+      // Assumed to be only an ACK flag ... update our ACK number if any number bigger regardless
+      else{
+        updateAckNumForAck(tcpPacket);
+      }
+    // } finally{
+    //   sendRecLock.unlock();
+    // }
   }
 
   void updateAckNum(TCPpacket tcpPacket){
@@ -113,19 +129,34 @@ public abstract class TCPbase extends Thread{
       ackNum = tcpPacket.seqNum + Math.max(tcpPacket.payloadData.length, 1);
   }
 
-  void handleSynPacket(TCPpacket tcpPacket, DatagramPacket packet){
-    ackNum = tcpPacket.seqNum + 1;
+  void updateAckNumForAck(TCPpacket tcpPacket){
+    if(tcpPacket.seqNum >= ackNum)
+      ackNum = tcpPacket.seqNum + Math.max(tcpPacket.payloadData.length, 1);
+  }
 
-    
-    // No ACK flag ... we are receiver receiving syn for first time
+  void handleSynPacket(TCPpacket tcpPacket, DatagramPacket packet){
+    // No ACK flag ... we are receiver ... check if we are receiving syn for first time
     if(tcpPacket.isAck() == false){
-      sendTCP(new byte[0], new Boolean[]{true,false,true});
+      if(syn_rec == false){
+        ackNum = tcpPacket.seqNum + 1;
+        sendTCP(new byte[0], new Boolean[]{true,false,true});
+        syn_rec = true;
+      }
     }
     // We are the origianl sender ... send a final ACK to complete handshake
     else{
-      sendACK(tcpPacket);
-      System.out.println("Established handshake connection ... can send data now");
-      canSendData = true;
+      ackNum = tcpPacket.seqNum + 1;
+      if(established)
+        resendACKtoSYN();
+      else{
+        sendACK(tcpPacket);
+        System.out.println("Established handshake connection ... can send data now");
+        established = true;
+        // synchronized(lock){
+        //   established = true;
+        //   established.notify();  
+        // }
+      }
     }
   }
 
@@ -145,7 +176,7 @@ public abstract class TCPbase extends Thread{
   }
 
   void handleAckPacket(TCPpacket tcpPacket){
-    if(waitingForClose){
+    if(tcpPacket.isFin() == false && waitingForClose){
       stopThread();
       return;
     }
@@ -154,6 +185,8 @@ public abstract class TCPbase extends Thread{
       // TODO: remove packets in holding list with seqNum less than received ackNum
       lastRecAck = tcpPacket.ackNum;
       duplicateAckCount = 0;
+      toMan.updateTimeout(tcpPacket);
+      toMan.removePacket(tcpPacket.ackNum);
     }
     else if(tcpPacket.ackNum == lastRecAck){
       duplicateAckCount += 1;
@@ -171,8 +204,13 @@ public abstract class TCPbase extends Thread{
 
   ///////// Sending data /////////
   void sendACK(TCPpacket origPacket){
-    toMan.updateTimeout(origPacket);
     sendTCP(new byte[0], new Boolean[]{false,false,true}, origPacket.time);
+  }
+
+  void resendACKtoSYN(){
+    long time = System.nanoTime();
+    TCPpacket tcpPacket = new TCPpacket(1, ackNum, time, new Boolean[]{false,false,true}, new byte[0]);
+    sendTCP(tcpPacket);
   }
 
   void sendFIN(){
@@ -184,38 +222,54 @@ public abstract class TCPbase extends Thread{
   }
 
   void sendTCP(byte[] data, Boolean[] flags, long time) {
-    TCPpacket tcpPacket = new TCPpacket(seqNum, ackNum, time, flags, data);
+    // sendRecLock.lock();
+    // try{
+      TCPpacket tcpPacket = new TCPpacket(seqNum, ackNum, time, flags, data);
+      sendTCP(tcpPacket);
+
+      // Check if packet is required to be ACK back ... if so add to list to make sure it gets transmitted
+      if(tcpPacket.isSyn() || tcpPacket.isFin() || tcpPacket.payloadData.length > 0){
+        // toMan.startPacketTimer(tcpPacket, seqNum + Math.max(tcpPacket.payloadData.length, 1));
+        toMan.startPacketTimer(tcpPacket);
+      }
+
+      // Increment sequence after sent packet
+      seqNum += Math.max(data.length, 1);
+    // } finally{
+    //   sendRecLock.unlock();
+    // }
+  }
+
+  synchronized void sendTCP(TCPpacket tcpPacket){
     byte[] tcpData = tcpPacket.serialize();
 
     DatagramPacket packet = new DatagramPacket(tcpData, tcpData.length, ip, remotePort);
 
-    printPacket(tcpPacket, "snd");
+    boolean dropped = rand.nextFloat() < 0.2f;
+
+    if(dropped == false)
+      printPacket(tcpPacket, "snd");
+    else
+      printPacketFake(tcpPacket, "snd");
+
     try{
-      this.socket.send(packet);
+      // TODO: remove
+      if(dropped == false)
+        this.socket.send(packet);
     }catch(IOException e){
       System.out.println("Failure to send packet");
-    }
-
-    // Increment sequence after sent packet
-    seqNum += Math.max(data.length, 1);
-
-    // Check if packet is required to be ACK back ... if so add to list to make sure it gets transmitted
-    if(tcpPacket.isSyn() || tcpPacket.isFin() || tcpPacket.payloadData.length > 0){
-      toMan.startPacketTimer(tcpPacket, seqNum + Math.max(tcpPacket.payloadData.length, 1));
     }
   }
 
   public void resendTCP(TCPpacket tcpPacket){
-    byte[] tcpData = tcpPacket.serialize();
+    // sendRecLock.lock();
+    // try{
+      tcpPacket.ackNum = ackNum;
 
-    DatagramPacket packet = new DatagramPacket(tcpData, tcpData.length, ip, remotePort);
-
-    printPacket(tcpPacket, "snd");
-    try{
-      this.socket.send(packet);
-    }catch(IOException e){
-      System.out.println("Failure to send packet");
-    }
+      sendTCP(tcpPacket);
+    // } finally{
+    //   sendRecLock.unlock();
+    // }
   }
 
   void printPacket(TCPpacket tcpPacket, String tType){
@@ -224,17 +278,39 @@ public abstract class TCPbase extends Thread{
       " " + tcpPacket.payloadData.length + " " + tcpPacket.ackNum);
   }
 
+  void printPacketFake(TCPpacket tcpPacket, String tType){
+    System.out.println("xx " + tType + " time " + (tcpPacket.isSyn() ? "S " : "- ") + (tcpPacket.isAck() ? "A " : "- ") + 
+      (tcpPacket.isFin() ? "F " : "- ") + (tcpPacket.payloadData.length > 0 ? "D " : "- ") + tcpPacket.seqNum + 
+      " " + tcpPacket.payloadData.length + " " + tcpPacket.ackNum);
+  }
+
   public synchronized void stopThread(){
     this.doStop = true;
     disconnect();
+    // synchronized(lock){
+    //   established = false;
+    //   established.notify();
+    // }
   }
 
-  private synchronized boolean running(){
+  protected synchronized boolean running(){
     return this.doStop == false;
   }
 
+  // protected boolean canSendData(){
+  //   synchronized(lock){
+  //     try{
+  //       established.wait();
+  //     }catch(InterruptedException ex){
+  //       Thread.currentThread().interrupt();
+  //     }
+  //     return established;
+  //   }
+  // }
+
   public void disconnect(){
     socket.close();
+    toMan.clearAllPackets();
   }
 
   public int getLastRecAck(){

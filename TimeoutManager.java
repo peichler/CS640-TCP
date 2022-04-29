@@ -1,7 +1,11 @@
-import java.util.Queue;
+import java.util.PriorityQueue;
+import java.util.Timer;
 
 // Manages timeout packets by adding and removing stored timeout packets
 public class TimeoutManager{
+	PriorityQueue<TimeoutPacket> packetBuffer = new PriorityQueue<TimeoutPacket>((p1, p2) -> p1.tcpPacket.seqNum - p2.tcpPacket.seqNum);
+	final Timer timer = new Timer();
+
 	TCPbase base;
 	double timeout;
   	double ertt;
@@ -14,43 +18,87 @@ public class TimeoutManager{
     	this.edev = 0.0;
 	}
 
-	public TCPbase getBase() {
-		return base;
-	}
-
 	public void updateTimeout(TCPpacket packet) {
-	    if (packet.ackNum == 0) {
-	      ertt = (double)(System.nanoTime() - packet.time);
-	      edev = 0.0;
-	      timeout = 2.0*ertt;
-	    } else {
-	      double srtt = (double)(System.nanoTime() - packet.time);
-	      double sdev = Math.abs(srtt - ertt);
-	      ertt = .875*ertt + (1.0-.875)*srtt;
-	      edev = .75*edev + (1.0-.75)*sdev;
-	      timeout = ertt + 4*edev;
-		 }
+		timeout = 0.1;
+		return;	    
+	  //   if (packet.ackNum == 0) {
+	  //     ertt = (double)(System.nanoTime() - packet.time) / 1e9;
+	  //     edev = 0.0;
+	  //     timeout = 2.0*ertt;
+	  //   } else {
+	  //     double srtt = (double)(System.nanoTime() - packet.time) / 1e9;
+	  //     double sdev = Math.abs(srtt - ertt);
+	  //     ertt = .875*ertt + (1.0-.875)*srtt;
+	  //     edev = .75*edev + (1.0-.75)*sdev;
+	  //     timeout = ertt + 4*edev;
+		 // }
 	 }
 
 	public double getTimeout() {
 		return timeout;
 	}
 
-	// Creates a timeout packet and starts thread
-	// Adds timeout packet to queue
-	public void startPacketTimer(TCPpacket tcpPacket, int dataAck){
-		TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, dataAck);
-		toPacket.start();
+	public void startPacketTimer(TCPpacket tcpPacket){
+		startPacketTimer(tcpPacket, 0);
 	}
 
-	public void resendPacket(TCPpacket tcpPacket) {
-		// base.sendTCP(data, new Boolean[]{false, false, false});
-		base.resendTCP(tcpPacket);
+	// Creates a timeout packet and starts thread
+	// Adds timeout packet to queue
+	public void startPacketTimer(TCPpacket tcpPacket, int curRetrans){
+		synchronized(packetBuffer){
+			TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, curRetrans);
+			packetBuffer.add(toPacket);
+			timer.schedule(toPacket, 100);
+		}
+	}
+
+	public void resendPacket(TimeoutPacket packet) {
+		if(packet.curRetrans >= 16){
+			System.out.println("Over max retransmissions ... quitting program");
+			base.stopThread();
+			// TODO: stop sender thread if running
+			return;
+		}
+
+		System.out.println("Retransmiting " + packet.tcpPacket.seqNum);
+		synchronized(packetBuffer){
+			System.out.println("Retransmiting now" + packet.tcpPacket.seqNum);
+			packetBuffer.remove(packet);
+			startPacketTimer(packet.tcpPacket, packet.curRetrans);
+			base.resendTCP(packet.tcpPacket);
+		}
 	}
 
 	// // Removes all packets based on ack number received
-	// public synchronized void removePacket(int ackNum){
-	// 	// TODO: find all tcp packets with seqNum below or equal to ackNum
-	// 	// Stop thread and remove from queue
-	// }
+	public void removePacket(int ackNum){
+		synchronized(packetBuffer){
+			while(packetBuffer.size() > 0 && packetBuffer.peek().tcpPacket.getReturnAck() <= ackNum){
+				TimeoutPacket toPacket = packetBuffer.poll();
+				toPacket.cancel();
+			}
+			timer.purge();
+			packetBuffer.notify();
+		}
+	}
+
+	public void clearAllPackets(){
+		synchronized(packetBuffer){
+			timer.cancel();
+			packetBuffer.clear();
+			packetBuffer.notify();
+		}
+	}
+
+	public void waitTillPacketsLessThanNum(int num){
+		// System.out.println("Waiting till packets are less than or equal to: " + num);
+		synchronized(packetBuffer){
+			try{
+				while(packetBuffer.size() > num)
+					packetBuffer.wait();
+			}catch(InterruptedException ex){
+				Thread.currentThread().interrupt();
+			}
+		}
+		System.out.println("Clear to send");
+	}
 }

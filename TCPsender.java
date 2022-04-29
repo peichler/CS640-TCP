@@ -19,7 +19,11 @@ public class TCPsender extends TCPbase{
 
   public void sendFile(){
     // Possibly change this into the future with a thread synchronized lock
-    while(canSendData == false);
+    // while(canSendData == false);
+    // if(canSendData() == false)
+    //   return;
+    while(established == false);
+
     System.out.println("Sending file");
 
     FileInputStream stream = null;
@@ -34,8 +38,7 @@ public class TCPsender extends TCPbase{
       // TODO: Add support for resending unacked packets
       while(stream.available() > 0){
         // Make sure we are in sliding window ... if not wait
-        // while(seqNum - lastRecAck >= sws);
-        // while(timeoutManager.getNumPackets() >= sws);
+        toMan.waitTillPacketsLessThanNum(sws-1);
 
         // Create empty data with maximum size
         byte[] data = new byte [Math.min(getMaxDataSize(), stream.available())];
@@ -43,8 +46,8 @@ public class TCPsender extends TCPbase{
         // Read data into byte array
         stream.read(data, 0, data.length);
 
-        System.out.println("Sending data with size: "+ data.length);
-
+        if(running() == false)
+          return;
         sendTCP(data, new Boolean[]{false, false, false});
       }
 
@@ -53,10 +56,11 @@ public class TCPsender extends TCPbase{
       System.out.println(e);
     }
 
-    // TODO: check if this needs to be synchonized
-    while(lastRecAck < seqNum);
-    System.out.println("Initiating close");
+    toMan.waitTillPacketsLessThanNum(0);
+    if(running() == false)
+      return;
 
+    System.out.println("Initiating close");
     initiatedClose = true;
     this.sendFIN();
   }
