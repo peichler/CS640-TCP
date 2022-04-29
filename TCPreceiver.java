@@ -7,11 +7,12 @@ import java.util.PriorityQueue;
 
 // Receives file from sender using TCP from base class
 public class TCPreceiver extends TCPbase{
-  PriorityQueue<TCPpacket> packetBuffer = new PriorityQueue<TCPpacket>((p1, p2) -> p1.seqNum - p2.seqNum);
+  PriorityQueue<TCPpacket> packetBuffer;
   FileOutputStream stream;
 
   public TCPreceiver(int port, int mtu, int sws, String fileName){
     super(port, fileName, mtu, sws);
+    packetBuffer = new PriorityQueue<TCPpacket>((p1, p2) -> p1.seqNum - p2.seqNum);
 
     try{
       stream = new FileOutputStream(fileName);
