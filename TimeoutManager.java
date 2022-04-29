@@ -7,31 +7,29 @@ public class TimeoutManager{
 	final Timer timer = new Timer();
 
 	TCPbase base;
-	double timeout;
+	long timeout;
   	double ertt;
   	double edev;
 
 	public TimeoutManager(TCPbase base) {
 		this.base = base;
-		this.timeout = 5.0;
+		this.timeout = 5e9;
     	this.ertt = 0.0;
     	this.edev = 0.0;
 	}
 
-	public void updateTimeout(TCPpacket packet) {
-		timeout = 0.1;
-		return;	    
-	  //   if (packet.ackNum == 0) {
-	  //     ertt = (double)(System.nanoTime() - packet.time) / 1e9;
-	  //     edev = 0.0;
-	  //     timeout = 2.0*ertt;
-	  //   } else {
-	  //     double srtt = (double)(System.nanoTime() - packet.time) / 1e9;
-	  //     double sdev = Math.abs(srtt - ertt);
-	  //     ertt = .875*ertt + (1.0-.875)*srtt;
-	  //     edev = .75*edev + (1.0-.75)*sdev;
-	  //     timeout = ertt + 4*edev;
-		 // }
+	public void updateTimeout(TCPpacket packet) {  
+	    if (packet.ackNum == 0) {
+	      ertt = (double)(System.nanoTime() - packet.time);
+	      edev = 0.0;
+	      timeout = (long)(2.0*ertt);
+	    } else {
+	      double srtt = (double)(System.nanoTime() - packet.time);
+	      double sdev = Math.abs(srtt - ertt);
+	      ertt = .875*ertt + (1.0-.875)*srtt;
+	      edev = .75*edev + (1.0-.75)*sdev;
+	      timeout = (long)(ertt + 4*edev);
+		 }
 	 }
 
 	public double getTimeout() {
@@ -48,7 +46,7 @@ public class TimeoutManager{
 		synchronized(packetBuffer){
 			TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, curRetrans);
 			packetBuffer.add(toPacket);
-			timer.schedule(toPacket, 100);
+			timer.schedule(toPacket, (int)(timeout/1e6));
 		}
 	}
 
