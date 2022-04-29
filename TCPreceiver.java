@@ -26,11 +26,11 @@ public class TCPreceiver extends TCPbase{
     byte[] data = packet.payloadData;
 
     if(packet.seqNum < ackNum){
-      System.out.println("Duplicate packet ... dropping");
+      // System.out.println("Duplicate packet ... dropping");
       outOfSeqPackets += 1;
       return;
     }else if(packet.seqNum > ackNum){
-      System.out.println("Packet out of order ... putting it in packet buffer");
+      // System.out.println("Packet out of order ... putting it in packet buffer");
       outOfSeqPackets += 1;
       // Check for duplicate packet
       for (TCPpacket p : packetBuffer){

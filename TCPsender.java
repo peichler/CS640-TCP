@@ -18,10 +18,6 @@ public class TCPsender extends TCPbase{
   }
 
   public void sendFile(){
-    // Possibly change this into the future with a thread synchronized lock
-    // while(canSendData == false);
-    // if(canSendData() == false)
-    //   return;
     while(established == false);
     if(running() == false)
       return;
@@ -37,7 +33,6 @@ public class TCPsender extends TCPbase{
     }
 
     try{
-      // TODO: Add support for resending unacked packets
       while(stream.available() > 0){
         // Make sure we are in sliding window ... if not wait
         toMan.waitTillPacketsLessThanNum(sws-1);
@@ -69,12 +64,10 @@ public class TCPsender extends TCPbase{
   }
 
   public void handlePacket(TCPpacket packet){
-    // System.out.println("Handling packet in sender");
+    
   }
 
   int getMaxDataSize(){
-    // TODO: calculate real max size between both sender & reciever
-    // TODO: cacluate real header size
     return this.mtu - TCPpacket.headerSize - 28;
   }
 }

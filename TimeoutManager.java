@@ -31,7 +31,7 @@ public class TimeoutManager{
 	      timeout = (long)(ertt + 4*edev);
 		 }
 
-		 System.out.println("errt: ," + (ertt/1e6) + "edev: " + (edev/1e6) + ",new timeout: " + (timeout/1e6));
+		 // System.out.println("errt: ," + (ertt/1e6) + "edev: " + (edev/1e6) + ",new timeout: " + (timeout/1e6));
 	 }
 
 	public long getTimeout() {
@@ -54,14 +54,12 @@ public class TimeoutManager{
 	
 	public void resendPacket(TimeoutPacket packet) {
 		if(packet.curRetrans >= 16){
-			System.out.println("Over max retransmissions ... quitting program");
+			// System.out.println("Over max retransmissions ... quitting program");
 			base.stopThread();
 			return;
 		}
 
-		System.out.println("Retransmiting " + packet.tcpPacket.seqNum);
 		synchronized(packetBuffer){
-			System.out.println("Retransmiting now" + packet.tcpPacket.seqNum);
 			packetBuffer.remove(packet);
 			startPacketTimer(packet.tcpPacket, packet.curRetrans);
 			base.resendTCP(packet.tcpPacket);
@@ -77,7 +75,6 @@ public class TimeoutManager{
 				}
 			}
 		}
-		System.out.println("Error packet not in packet buffer");
 	}
 
 	// // Removes all packets based on ack number received
@@ -85,7 +82,6 @@ public class TimeoutManager{
 		synchronized(packetBuffer){
 			while(packetBuffer.size() > 0 && packetBuffer.peek().tcpPacket.getReturnAck() <= ackNum){
 				TimeoutPacket toPacket = packetBuffer.poll();
-				System.out.println("Removing packet with seqNum: " + toPacket.tcpPacket.seqNum);
 				toPacket.cancel();
 			}
 			timer.purge();
@@ -102,7 +98,6 @@ public class TimeoutManager{
 	}
 
 	public void waitTillPacketsLessThanNum(int num){
-		// System.out.println("Waiting till packets are less than or equal to: " + num);
 		synchronized(packetBuffer){
 			try{
 				while(packetBuffer.size() > num)
@@ -111,6 +106,5 @@ public class TimeoutManager{
 				Thread.currentThread().interrupt();
 			}
 		}
-		System.out.println("Clear to send");
 	}
 }
