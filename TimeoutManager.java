@@ -13,7 +13,7 @@ public class TimeoutManager{
 
 	public TimeoutManager(TCPbase base) {
 		this.base = base;
-		this.timeout = 5e9;
+		this.timeout = (long)5e9;
     	this.ertt = 0.0;
     	this.edev = 0.0;
 	}
@@ -46,10 +46,10 @@ public class TimeoutManager{
 		synchronized(packetBuffer){
 			TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, curRetrans);
 			packetBuffer.add(toPacket);
-			timer.schedule(toPacket, (int)(timeout/1e6));
+			timer.schedule(toPacket, (int)(timeout/(long)1e6));
 		}
 	}
-
+	
 	public void resendPacket(TimeoutPacket packet) {
 		if(packet.curRetrans >= 16){
 			System.out.println("Over max retransmissions ... quitting program");
