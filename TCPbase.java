@@ -42,6 +42,14 @@ public abstract class TCPbase extends Thread{
     this.startTime = System.nanoTime();
     toMan = new TimeoutManager(this);
 
+    long time = System.nanoTime();
+    TCPpacket tcpPacket = new TCPpacket(0, 0, time, new Boolean[]{false,false,false}, new byte[0]);
+    byte[] tcpData = tcpPacket.serialize();
+    TCPpacket newpacket = new TCPpacket();
+    newpacket.checksum(tcpData);
+    System.out.println(tcpPacket.time + " : " + newpacket.time);
+
+
     try{
       this.socket = new DatagramSocket(port);  
     }catch(SocketException e){
