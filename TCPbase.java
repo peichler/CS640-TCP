@@ -28,6 +28,7 @@ public abstract class TCPbase extends Thread{
   boolean initiatedClose;
   boolean waitingForClose;
   boolean syn_rec;
+  boolean timeWait;
 
   TimeoutManager toMan;
 
@@ -156,9 +157,12 @@ public abstract class TCPbase extends Thread{
     }
     // We sent original FIN ... send ACK back and wait for wait time
     else{
-      sendACK(tcpPacket);
-      DelayedClose delay = new DelayedClose(this, (int)toMan.getTimeout()/1000000 * 16);
-      delay.start();
+      if(timeWait){
+        sendACK(tcpPacket);
+        DelayedClose delay = new DelayedClose(this, (int)toMan.getTimeout()/1000000 * 16);
+        delay.start();
+        timeWait = true;
+      }
     }
   }
 
