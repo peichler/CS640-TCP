@@ -22,8 +22,6 @@ public class TCPsender extends TCPbase{
     if(running() == false)
       return;
 
-    System.out.println("Sending file");
-
     FileInputStream stream = null;
     
     try{
@@ -58,7 +56,6 @@ public class TCPsender extends TCPbase{
     if(running() == false)
       return;
 
-    System.out.println("Initiating close");
     initiatedClose = true;
     this.sendFIN();
   }

@@ -42,20 +42,11 @@ public abstract class TCPbase extends Thread{
     this.startTime = System.nanoTime();
     toMan = new TimeoutManager(this);
 
-    long time = System.nanoTime();
-    TCPpacket tcpPacket = new TCPpacket(0, 0, time, new Boolean[]{false,false,false}, new byte[0]);
-    byte[] tcpData = tcpPacket.serialize();
-    TCPpacket newpacket = new TCPpacket();
-    newpacket.isChecksumValid(tcpData);
-    System.out.println(tcpPacket.time + " : " + newpacket.time);
-
-
     try{
       this.socket = new DatagramSocket(port);  
     }catch(SocketException e){
       System.out.println("Socket could not be created");
     }
-    System.out.println("new");
   }
 
   public void run(){
@@ -217,7 +208,8 @@ public abstract class TCPbase extends Thread{
   }
 
   void sendTCP(byte[] data, Boolean[] flags) {
-    sendTCP(data, flags, System.nanoTime());
+    long t = System.nanoTime();
+    sendTCP(data, flags, t);
   }
 
   void sendTCP(byte[] data, Boolean[] flags, long time) {
@@ -250,7 +242,6 @@ public abstract class TCPbase extends Thread{
   }
 
   public void resendTCP(TCPpacket tcpPacket){
-    System.out.println("resend");
     tcpPacket.ackNum = ackNum;
     tcpPacket.time = System.nanoTime();
     retransNum += 1;

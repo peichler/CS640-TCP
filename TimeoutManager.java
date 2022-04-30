@@ -18,8 +18,6 @@ public class TimeoutManager{
 	public TimeoutManager(TCPbase base) {
 		this.base = base;
 		this.timeout = (long)1e9;
-    	// this.ertt = 0.0;
-    	// this.edev = 0.0;
 	}
 
 	// public void updateTimeout(TCPpacket packet) {  
@@ -38,18 +36,11 @@ public class TimeoutManager{
 	//       edev = .75*edev + (1.0-.75)*sdev;
 	//       timeout = (long)(ertt + 4*edev);
 	// 	 }
-
-	// 	 // System.out.println("errt: ," + (ertt/1e6) + "edev: " + (edev/1e6) + ",new timeout: " + (timeout/1e6));
 	//  }
 
 	public void updateTimeout(TCPpacket packet) {  
 	    if (first == false) {
-	    	System.out.println(System.nanoTime());
-	    	System.out.println(packet.time);
 	      ertt = (System.nanoTime() - packet.time);
-	      // System.out.println("Difference " + (System.nanoTime() - packet.time));
-	      // System.out.println("next timeout: " + ((System.nanoTime() - packet.time)/(long)1e6));
-	      // System.out.println("actual timeout: " + (( (double)(System.nanoTime() - packet.time) )/(long)1e6));
 	      edev = 0;
 	      timeout = 2*ertt;
 	      first = true;
@@ -60,8 +51,6 @@ public class TimeoutManager{
 	      edev = edev/4 * 3 + sdev/4;
 	      timeout = ertt + 4*edev;
 		 }
-
-		 // System.out.println("errt: ," + (ertt/1e6) + "edev: " + (edev/1e6) + ",new timeout: " + (timeout/1e6));
 	 }
 
 	public long getTimeout() {
@@ -75,8 +64,6 @@ public class TimeoutManager{
 	// Creates a timeout packet and starts thread
 	// Adds timeout packet to queue
 	public void startPacketTimer(TCPpacket tcpPacket, int curRetrans){
-		System.out.println("Timeout: " + getTimeout());
-		System.out.println("Queueing with: " + (int)(getTimeout()/1000000));
 		synchronized(packetBuffer){
 			TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, curRetrans);
 			packetBuffer.add(toPacket);
