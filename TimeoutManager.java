@@ -41,6 +41,10 @@ public class TimeoutManager{
 	public void updateTimeout(TCPpacket packet) {  
 	    if (first == false) {
 	      ertt = (System.nanoTime() - packet.time);
+	      System.out.println("Diff: " + ertt);
+	      // System.out.println("starttime: " + packet.time);
+	      // System.out.println("Endtime: " + System.nanoTime());
+	      // System.out.println("ERTT: " + ertt);
 	      edev = 0;
 	      timeout = 2*ertt;
 	      first = true;
@@ -50,7 +54,9 @@ public class TimeoutManager{
 	      ertt = ertt/8 * 7 + srtt/8;
 	      edev = edev/4 * 3 + sdev/4;
 	      timeout = ertt + 4*edev;
+	      System.out.println("Diff: " + srtt);
 		 }
+		 System.out.println("Timeout: " + timeout);
 	 }
 
 	public long getTimeout() {

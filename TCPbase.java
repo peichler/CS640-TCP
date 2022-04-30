@@ -133,7 +133,7 @@ public abstract class TCPbase extends Thread{
     if(tcpPacket.isAck() == false){
       if(syn_rec == false){
         ackNum = tcpPacket.seqNum + 1;
-        sendTCP(new byte[0], new Boolean[]{true,false,true});
+        sendTCP(new byte[0], new Boolean[]{true,false,true}, tcpPacket.time);
         syn_rec = true;
       }
     }
@@ -158,7 +158,7 @@ public abstract class TCPbase extends Thread{
     // We sent original FIN ... send ACK back and wait for wait time
     else{
       sendACK(tcpPacket);
-      if(timeWait){
+      if(timeWait == false){
         DelayedClose delay = new DelayedClose(this, (int)toMan.getTimeout()/1000000 * 16);
         delay.start();
         timeWait = true;
@@ -194,6 +194,7 @@ public abstract class TCPbase extends Thread{
 
   ///////// Sending data /////////
   void sendACK(TCPpacket origPacket){
+    System.out.print("Original time: " + origPacket.time);
     sendTCP(new byte[0], new Boolean[]{false,false,true}, origPacket.time);
   }
 
