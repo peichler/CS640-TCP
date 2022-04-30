@@ -78,7 +78,7 @@ public class TimeoutManager{
 		synchronized(packetBuffer){
 			TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, curRetrans);
 			packetBuffer.add(toPacket);
-			timer.schedule(toPacket, (int)(getTimeout()/1000000);
+			timer.schedule(toPacket, (int)(getTimeout()/1000000));
 		}
 	}
 	
