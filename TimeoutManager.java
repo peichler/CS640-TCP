@@ -11,6 +11,8 @@ public class TimeoutManager{
   	double ertt;
   	double edev;
 
+  	boolean first;
+
 	public TimeoutManager(TCPbase base) {
 		this.base = base;
 		this.timeout = (long)1e9;
@@ -19,13 +21,14 @@ public class TimeoutManager{
 	}
 
 	public void updateTimeout(TCPpacket packet) {  
-	    if (packet.ackNum == 0) {
+	    if (first) {
 	      ertt = (double)(System.nanoTime() - packet.time);
 	      System.out.println("Difference " + (System.nanoTime() - packet.time));
 	      System.out.println("next timeout: " + ((System.nanoTime() - packet.time)/(long)1e6));
 	      System.out.println("actual timeout: " + (( (double)(System.nanoTime() - packet.time) )/(long)1e6));
 	      edev = 0.0;
 	      timeout = (long)(2.0*ertt);
+	      first = true;
 	    } else {
 	      double srtt = (double)(System.nanoTime() - packet.time);
 	      double sdev = Math.abs(srtt - ertt);
