@@ -194,7 +194,6 @@ public abstract class TCPbase extends Thread{
 
   ///////// Sending data /////////
   void sendACK(TCPpacket origPacket){
-    System.out.print("Original time: " + origPacket.time);
     sendTCP(new byte[0], new Boolean[]{false,false,true}, origPacket.time);
   }
 
