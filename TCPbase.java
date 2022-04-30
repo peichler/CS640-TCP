@@ -47,6 +47,7 @@ public abstract class TCPbase extends Thread{
     }catch(SocketException e){
       System.out.println("Socket could not be created");
     }
+    System.out.println("new");
   }
 
   public void run(){
@@ -241,6 +242,7 @@ public abstract class TCPbase extends Thread{
   }
 
   public void resendTCP(TCPpacket tcpPacket){
+    System.out.println("resend");
     tcpPacket.ackNum = ackNum;
     tcpPacket.time = System.nanoTime();
     retransNum += 1;
