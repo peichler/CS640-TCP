@@ -46,7 +46,7 @@ public abstract class TCPbase extends Thread{
     TCPpacket tcpPacket = new TCPpacket(0, 0, time, new Boolean[]{false,false,false}, new byte[0]);
     byte[] tcpData = tcpPacket.serialize();
     TCPpacket newpacket = new TCPpacket();
-    newpacket.checksum(tcpData);
+    newpacket.isChecksumValid(tcpData);
     System.out.println(tcpPacket.time + " : " + newpacket.time);
 
 
