@@ -21,7 +21,7 @@ public class TimeoutManager{
 	}
 
 	public void updateTimeout(TCPpacket packet) {  
-	    if (first) {
+	    if (first == false) {
 	      ertt = (double)(System.nanoTime() - packet.time);
 	      System.out.println("Difference " + (System.nanoTime() - packet.time));
 	      System.out.println("next timeout: " + ((System.nanoTime() - packet.time)/(long)1e6));
