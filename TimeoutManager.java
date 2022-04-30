@@ -35,7 +35,7 @@ public class TimeoutManager{
 	 }
 
 	public long getTimeout() {
-		return Math.max(timeout, 10000000);
+		return timeout;
 	}
 
 	public void startPacketTimer(TCPpacket tcpPacket){
@@ -45,6 +45,7 @@ public class TimeoutManager{
 	// Creates a timeout packet and starts thread
 	// Adds timeout packet to queue
 	public void startPacketTimer(TCPpacket tcpPacket, int curRetrans){
+		System.out.println("Queueing with: " + (int)(getTimeout()/(long)1e6));
 		synchronized(packetBuffer){
 			TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, curRetrans);
 			packetBuffer.add(toPacket);
