@@ -73,11 +73,12 @@ public class TimeoutManager{
 	// Creates a timeout packet and starts thread
 	// Adds timeout packet to queue
 	public void startPacketTimer(TCPpacket tcpPacket, int curRetrans){
-		System.out.println("Queueing with: " + (int)(getTimeout()/(long)1e6));
+		System.out.println("Timeout: " + getTimeout());
+		System.out.println("Queueing with: " + (int)(getTimeout()/1000000));
 		synchronized(packetBuffer){
 			TimeoutPacket toPacket = new TimeoutPacket(this, tcpPacket, curRetrans);
 			packetBuffer.add(toPacket);
-			timer.schedule(toPacket, (int)(getTimeout()/(long)1e6));
+			timer.schedule(toPacket, (int)(getTimeout()/1000000);
 		}
 	}
 	
