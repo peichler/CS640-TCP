@@ -158,8 +158,8 @@ public abstract class TCPbase extends Thread{
     }
     // We sent original FIN ... send ACK back and wait for wait time
     else{
+      sendACK(tcpPacket);
       if(timeWait){
-        sendACK(tcpPacket);
         DelayedClose delay = new DelayedClose(this, (int)toMan.getTimeout()/1000000 * 16);
         delay.start();
         timeWait = true;

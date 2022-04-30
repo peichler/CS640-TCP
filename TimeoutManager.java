@@ -8,33 +8,55 @@ public class TimeoutManager{
 
 	TCPbase base;
 	long timeout;
-  	double ertt;
-  	double edev;
+  	// double ertt;
+  	// double edev;
+  	long ertt;
+  	long edev;
 
   	boolean first;
 
 	public TimeoutManager(TCPbase base) {
 		this.base = base;
 		this.timeout = (long)1e9;
-    	this.ertt = 0.0;
-    	this.edev = 0.0;
+    	// this.ertt = 0.0;
+    	// this.edev = 0.0;
 	}
+
+	// public void updateTimeout(TCPpacket packet) {  
+	//     if (first == false) {
+	//       ertt = (double)(System.nanoTime() - packet.time);
+	//       System.out.println("Difference " + (System.nanoTime() - packet.time));
+	//       System.out.println("next timeout: " + ((System.nanoTime() - packet.time)/(long)1e6));
+	//       System.out.println("actual timeout: " + (( (double)(System.nanoTime() - packet.time) )/(long)1e6));
+	//       edev = 0.0;
+	//       timeout = (long)(2.0*ertt);
+	//       first = true;
+	//     } else {
+	//       double srtt = (double)(System.nanoTime() - packet.time);
+	//       double sdev = Math.abs(srtt - ertt);
+	//       ertt = .875*ertt + (1.0-.875)*srtt;
+	//       edev = .75*edev + (1.0-.75)*sdev;
+	//       timeout = (long)(ertt + 4*edev);
+	// 	 }
+
+	// 	 // System.out.println("errt: ," + (ertt/1e6) + "edev: " + (edev/1e6) + ",new timeout: " + (timeout/1e6));
+	//  }
 
 	public void updateTimeout(TCPpacket packet) {  
 	    if (first == false) {
-	      ertt = (double)(System.nanoTime() - packet.time);
-	      System.out.println("Difference " + (System.nanoTime() - packet.time));
-	      System.out.println("next timeout: " + ((System.nanoTime() - packet.time)/(long)1e6));
-	      System.out.println("actual timeout: " + (( (double)(System.nanoTime() - packet.time) )/(long)1e6));
-	      edev = 0.0;
-	      timeout = (long)(2.0*ertt);
+	      ertt = (System.nanoTime() - packet.time);
+	      // System.out.println("Difference " + (System.nanoTime() - packet.time));
+	      // System.out.println("next timeout: " + ((System.nanoTime() - packet.time)/(long)1e6));
+	      // System.out.println("actual timeout: " + (( (double)(System.nanoTime() - packet.time) )/(long)1e6));
+	      edev = 0;
+	      timeout = 2*ertt;
 	      first = true;
 	    } else {
-	      double srtt = (double)(System.nanoTime() - packet.time);
-	      double sdev = Math.abs(srtt - ertt);
-	      ertt = .875*ertt + (1.0-.875)*srtt;
-	      edev = .75*edev + (1.0-.75)*sdev;
-	      timeout = (long)(ertt + 4*edev);
+	      long srtt = System.nanoTime() - packet.time;
+	      long sdev = Math.abs(srtt - ertt);
+	      ertt = ertt/8 * 7 + srtt/8;
+	      edev = edev/4 * 3 + sdev/4;
+	      timeout = ertt + 4*edev;
 		 }
 
 		 // System.out.println("errt: ," + (ertt/1e6) + "edev: " + (edev/1e6) + ",new timeout: " + (timeout/1e6));
